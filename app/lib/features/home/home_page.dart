@@ -37,16 +37,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _syncTimers(Incident? inc) {
-    final guiding = inc != null && inc.state.isGuiding;
-    if (guiding && _positionTimer == null) {
+    final Incident? guiding = (inc != null && inc.state.isGuiding) ? inc : null;
+    if (guiding != null && _positionTimer == null) {
       _positionTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
         final loc = ref.read(locationProvider);
-        if (loc == null || inc.shelter == null) return;
+        if (loc == null || guiding.shelter == null) return;
         try {
-          await ref.read(agentControllerProvider).reportPosition(inc.id, loc.point);
+          await ref.read(agentControllerProvider).reportPosition(guiding.id, loc.point);
         } catch (_) {}
       });
-    } else if (!guiding) {
+    } else if (guiding == null) {
       _positionTimer?.cancel();
       _positionTimer = null;
     }
@@ -140,7 +140,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _sheet(BuildContext context, Incident? inc, IncidentState state, ({SenaviMood mood, String line}) senavi, AsyncValue nearby) {
+  Widget _sheet(BuildContext context, Incident? inc, IncidentState state, ({SenaviMood mood, String line}) senavi, AsyncValue<({List<ShelterInfo> shelters, HazardHere? hazard})> nearby) {
     final ctrl = ref.read(agentControllerProvider);
     Widget body;
     if (state == IncidentState.assessing) {
@@ -212,7 +212,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ]),
       ]));
     } else {
-      final hz = nearby.value?.hazard as HazardHere?;
+      final hz = nearby.value?.hazard;
       final sub = hz == null ? '現在地周辺の避難場所とハザードを表示しています' : 'この場所: 浸水 ${hz.floodLabel}${hz.landslide ? ' / 土砂警戒' : ''}${hz.tsunami > 0 ? ' / 津波想定' : ''}';
       body = HinaCard(child: SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: sub));
     }
