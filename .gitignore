@@ -12,3 +12,9 @@ app/ios/Runner/GoogleService-Info.plist
 app/android/app/google-services.json
 app/lib/firebase_options.dart
 *.log
+
+# Vercel CLI のアクセストークン(エージェント環境では対話ログインができないため)
+server/.vercel-token
+
+# IDE
+.idea/
