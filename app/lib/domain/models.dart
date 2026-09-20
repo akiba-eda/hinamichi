@@ -125,11 +125,25 @@ class RouteInfo {
   final String provider;
   const RouteInfo({required this.points, required this.distanceM, required this.durationS, required this.provider});
   factory RouteInfo.fromJson(Map<String, dynamic> j) => RouteInfo(
-        points: ((j['points'] as List?) ?? const []).map((p) => LatLng((p[0] as num).toDouble(), (p[1] as num).toDouble())).toList(),
+        points: ((j['points'] as List?) ?? const []).map(_point).nonNulls.toList(),
         distanceM: (j['distanceM'] as num?)?.toInt() ?? 0,
         durationS: (j['durationS'] as num?)?.toInt() ?? 0,
         provider: (j['provider'] ?? 'straight') as String,
       );
+
+  /// 頂点は `{lat, lng}` のマップで届く。
+  /// Firestore が配列の入れ子を許さないための形で、サーバーもこれで書く。
+  /// 古い `[lat, lng]` 形式のドキュメントが残っていても読めるようにしてある。
+  static LatLng? _point(Object? p) {
+    if (p is Map) {
+      final lat = p['lat'] as num?, lng = p['lng'] as num?;
+      return lat == null || lng == null ? null : LatLng(lat.toDouble(), lng.toDouble());
+    }
+    if (p is List && p.length >= 2) {
+      return LatLng((p[0] as num).toDouble(), (p[1] as num).toDouble());
+    }
+    return null;
+  }
 }
 
 class Incident {
@@ -175,24 +189,128 @@ class FriendEntry {
   final String uid, displayName;
   final String? relation;
   final bool autoShare, isMock;
-  const FriendEntry({required this.uid, required this.displayName, this.relation, required this.autoShare, this.isMock = false});
+
+  /// この相手に自分の位置を見せるか。相手ごとに許可する(既定は false)。
+  final bool shareLocation;
+
+  /// 相手のアイコン。サーバーが friends/{uid}/list に写して載せる。
+  final String? avatarImage, avatarMood;
+
+  const FriendEntry({
+    required this.uid,
+    required this.displayName,
+    this.relation,
+    required this.autoShare,
+    this.isMock = false,
+    this.shareLocation = false,
+    this.avatarImage,
+    this.avatarMood,
+  });
   factory FriendEntry.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final j = d.data() ?? {};
-    return FriendEntry(uid: d.id, displayName: (j['displayName'] ?? '友だち') as String, relation: j['relation'] as String?, autoShare: j['autoShare'] != false, isMock: j['isMock'] == true);
+    return FriendEntry(
+      uid: d.id,
+      displayName: (j['displayName'] ?? '友だち') as String,
+      relation: j['relation'] as String?,
+      autoShare: j['autoShare'] != false,
+      isMock: j['isMock'] == true,
+      // 位置は明示的に許可したときだけ。既定は共有しない。
+      shareLocation: j['shareLocation'] == true,
+      avatarImage: j['avatarImage'] as String?,
+      avatarMood: j['avatarMood'] as String?,
+    );
   }
+}
+
+/// 許可された相手にだけ見える、最後に届いた位置。
+///
+/// 「いま どこにいるか」ではなく「**いつの時点で** どこにいたか」。
+/// 回線が切れた端末は位置を上げられないので、見る側には必ず [at] を添えて出す。
+/// これを落とすと、古い位置を現在地と誤解して捜索が空振りする。
+class FriendLocation {
+  final LatLng point;
+  final double? accuracyM;
+  final DateTime at;
+
+  /// 端末の電池残量。捜索の判断材料になるので、取れていれば一緒に見せる。
+  final int? batteryPct;
+
+  /// 市区町村レベルの地名(「東京都足立区」)。サーバーが逆ジオして入れる。
+  /// 一覧や詳細では座標ではなくこちらを読ませる ── 数字の緯度経度は
+  /// 人間が安否を判断する材料にならないため(設計書 §119 lastKnownArea)。
+  final String? areaName;
+
+  const FriendLocation({required this.point, required this.at, this.accuracyM, this.batteryPct, this.areaName});
+
+  factory FriendLocation.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final j = d.data()!;
+    return FriendLocation(
+      point: LatLng((j['lat'] as num).toDouble(), (j['lng'] as num).toDouble()),
+      at: (j['at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      accuracyM: (j['accuracyM'] as num?)?.toDouble(),
+      batteryPct: (j['batteryPct'] as num?)?.toInt(),
+      areaName: j['areaName'] as String?,
+    );
+  }
+
+  Duration get age => DateTime.now().difference(at);
+
+  /// 直近に届いているか。LINE でいう「オンライン」に相当する見せ方に使う。
+  bool get isOnline => age < const Duration(minutes: 5);
+
+  /// 「14:32時点」「3分前」のような、鮮度が一目で分かる表記。
+  String get ageLabel {
+    final m = age.inMinutes;
+    if (m < 1) return 'たった今';
+    if (m < 60) return '$m分前';
+    final h = age.inHours;
+    if (h < 24) return '$h時間前';
+    return '${age.inDays}日前';
+  }
+
+  /// 古い位置は色を変えて注意を引く(救助判断で一番危ないのは鮮度の誤解)。
+  bool get isStale => age > const Duration(minutes: 30);
 }
 
 class FriendStatus {
   final PublicStatus state;
-  final String? shelterName, note;
+  final String? shelterName;
+
+  /// 本人が書ける一言。平時は「今日は在宅」、災害時は「3階にいます」「水あり」など。
+  /// 状態の 5 段階だけでは伝わらないことを本人の言葉で補う欄。
+  final String? note;
+
+  /// 避難中・到着時の行き先。地図に出すために座標も持つ。
+  final LatLng? shelterPoint;
   final DateTime? updatedAt;
-  const FriendStatus({required this.state, this.shelterName, this.note, this.updatedAt});
+
+  const FriendStatus({required this.state, this.shelterName, this.note, this.shelterPoint, this.updatedAt});
   static const unknown = FriendStatus(state: PublicStatus.unknown);
+
   factory FriendStatus.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final j = d.data();
     if (j == null) return unknown;
-    return FriendStatus(state: PublicStatus.parse(j['state'] as String?), shelterName: j['shelterName'] as String?, note: j['note'] as String?, updatedAt: (j['updatedAt'] as Timestamp?)?.toDate());
+    final lat = (j['shelterLat'] as num?)?.toDouble();
+    final lng = (j['shelterLng'] as num?)?.toDouble();
+    return FriendStatus(
+      state: PublicStatus.parse(j['state'] as String?),
+      shelterName: j['shelterName'] as String?,
+      note: j['note'] as String?,
+      shelterPoint: lat != null && lng != null ? LatLng(lat, lng) : null,
+      updatedAt: (j['updatedAt'] as Timestamp?)?.toDate(),
+    );
   }
+
+  /// 避難の最中かどうか。地図で行き先まで線を引くかの判断に使う。
+  bool get isEvacuating => state == PublicStatus.evacuating;
+}
+
+/// 地図に出す 1 人分。一覧と地図で同じ材料を使う。
+class FriendOnMap {
+  final FriendEntry entry;
+  final FriendStatus status;
+  final FriendLocation location;
+  const FriendOnMap({required this.entry, required this.status, required this.location});
 }
 
 enum LogKind { toolCall, toolResult, llmRequest, llmResponse, validator, fallback, action, approval, cost, info;

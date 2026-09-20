@@ -9,6 +9,9 @@ import '../atoms/atoms.dart';
 
 // ---------------------------------------------------------------- SenaviAvatar
 /// Expression image with a 200 ms cross-fade. Falls back to a drawn placeholder until assets arrive.
+///
+/// アセットはデザイン書から切り出した全身の透過 PNG。円形に切ると耳と前足が
+/// 落ちるので、そのまま contain で収める。
 class SenaviAvatar extends StatelessWidget {
   final SenaviMood mood;
   final double size;
@@ -21,9 +24,7 @@ class SenaviAvatar extends StatelessWidget {
         key: ValueKey(mood),
         width: size,
         height: size,
-        child: ClipOval(
-          child: Image.asset(mood.asset, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _Placeholder(mood: mood, size: size)),
-        ),
+        child: Image.asset(mood.asset, fit: BoxFit.contain, errorBuilder: (_, __, ___) => _Placeholder(mood: mood, size: size)),
       ),
     );
   }
@@ -213,30 +214,176 @@ class ShelterCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------- FriendTile
+/// 見守りリストの 1 行。アイコンと名前だけ。
+///
+/// 一覧では情報を足さない。安否・メモ・電池・最終位置は全部タップした先で出す。
+/// 平時に開くことの方が多い画面なので、5 人並んでも圧が無いことを優先した。
+/// 状態はアイコン右下の小さな点だけで表す(LINE のオンライン表示と同じ扱い)。
+///
+/// 安否そのものは相手を承認した時点で自動的に届く ── それがこのアプリの目的
+/// なので、相手ごとに切る設定は置かない。選べるのは位置を見せるかどうかだけで、
+/// それも詳細側にある。
 class FriendTile extends StatelessWidget {
   final FriendEntry friend;
   final FriendStatus status;
-  final ValueChanged<bool>? onAutoShare;
-  const FriendTile({super.key, required this.friend, required this.status, this.onAutoShare});
+  final FriendLocation? location;
+  final VoidCallback? onTap;
+  const FriendTile({super.key, required this.friend, required this.status, this.location, this.onTap});
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final c = statusColor(status.state);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: HinaSpace.m, vertical: 10),
+        child: Row(children: [
+          Stack(children: [
+            HinaAvatar(
+              imageBase64: friend.avatarImage,
+              moodName: friend.avatarMood,
+              fallbackName: friend.displayName,
+              size: 48,
+              ringColor: HinaColors.line,
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: c, shape: BoxShape.circle, border: Border.all(color: HinaColors.surface, width: 2.5)),
+              ),
+            ),
+          ]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              friend.relation != null ? '${friend.displayName}(${friend.relation})' : friend.displayName,
+              style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 20, color: HinaColors.inkSub),
+        ]),
+      ),
+    );
+  }
+}
+
+/// 旧レイアウト(状態・位置・トグルを一覧に出す版)。Widget ギャラリーで
+/// 見比べるために残してある。画面からは使っていない。
+class FriendTileDetailed extends StatelessWidget {
+  final FriendEntry friend;
+  final FriendStatus status;
+  final FriendLocation? location;
+  final ValueChanged<bool>? onShareLocation;
+  final VoidCallback? onTap;
+  const FriendTileDetailed({super.key, required this.friend, required this.status, this.location, this.onShareLocation, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = statusColor(status.state);
     final time = status.updatedAt == null ? '' : '${status.updatedAt!.hour.toString().padLeft(2, '0')}:${status.updatedAt!.minute.toString().padLeft(2, '0')}';
-    final sub = status.shelterName ?? status.note ?? (status.state == PublicStatus.unknown ? '応答なし' : '');
-    return ListTile(
-      leading: CircleAvatar(backgroundColor: statusColor(status.state).withOpacity(0.18), child: Text(friend.displayName.characters.first, style: const TextStyle(fontWeight: FontWeight.w700, color: HinaColors.ink))),
-      title: Row(children: [
-        Flexible(child: Text(friend.relation != null ? '${friend.displayName}(${friend.relation})' : friend.displayName, style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
-        const SizedBox(width: 8),
-        StatusChip(status.state, compact: true),
-      ]),
-      subtitle: sub.isEmpty ? null : Text(sub, style: t.bodySmall),
-      trailing: Text(time, style: t.bodySmall),
+    final place = status.shelterName ?? status.note;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, 10),
+      decoration: BoxDecoration(color: HinaColors.surface, borderRadius: BorderRadius.circular(HinaRadius.card), boxShadow: HinaShadow.card),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          // 状態色の帯。一覧を流し見したときに、色だけで安否が拾える。
+          Container(width: 5, color: c),
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    HinaAvatar(
+                      imageBase64: friend.avatarImage,
+                      moodName: friend.avatarMood,
+                      fallbackName: friend.displayName,
+                      size: 46,
+                      ringColor: c,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Flexible(
+                            child: Text(
+                              friend.relation != null ? '${friend.displayName}(${friend.relation})' : friend.displayName,
+                              style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StatusChip(status.state, compact: true),
+                        ]),
+                        if (place != null && place.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            HinaIconView(status.shelterName != null ? HinaIcon.shelter : HinaIcon.home, size: 15, color: HinaColors.inkSub),
+                            const SizedBox(width: 5),
+                            Flexible(child: Text(place, style: t.bodySmall, overflow: TextOverflow.ellipsis)),
+                          ]),
+                        ],
+                        if (location != null) ...[
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            HinaIconView(HinaIcon.locate, size: 15, color: location!.isStale ? HinaColors.stUnknown : HinaColors.sky),
+                            const SizedBox(width: 5),
+                            // 鮮度は名前と同じ強さで出す。古い位置を現在地と
+                            // 読み違えるのが、この画面でいちばん危ない。
+                            Text('${location!.ageLabel}の位置',
+                                style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: location!.isStale ? HinaColors.stUnknown : HinaColors.ink)),
+                            if (location!.batteryPct != null) ...[
+                              const SizedBox(width: 10),
+                              Text('電池 ${location!.batteryPct}%',
+                                  style: t.bodySmall?.copyWith(color: location!.batteryPct! <= 15 ? HinaColors.alert : HinaColors.inkSub)),
+                            ],
+                          ]),
+                        ],
+                      ]),
+                    ),
+                    const SizedBox(width: 6),
+                    Column(children: [
+                      Text(time, style: t.bodySmall),
+                      if (onTap != null) const Icon(Icons.chevron_right, size: 18, color: HinaColors.inkSub),
+                    ]),
+                  ]),
+                  if (onShareLocation != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(12, 2, 6, 2),
+                      decoration: BoxDecoration(color: HinaColors.mist.withValues(alpha: 0.45), borderRadius: BorderRadius.circular(HinaRadius.chip)),
+                      child: Row(children: [
+                        Expanded(child: Text('この人に現在地を見せる', style: t.bodySmall?.copyWith(fontWeight: friend.shareLocation ? FontWeight.w700 : null, color: HinaColors.ink))),
+                        Switch(value: friend.shareLocation, onChanged: onShareLocation),
+                      ]),
+                    ),
+                  ],
+                ]),
+              ),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
 
 // ---------------------------------------------------------------- AlertBanner
+/// 03「災害発生時」の検知カード(デザイン書 シート3)。
+///
+/// 設計書 §17.5 のとおり別画面にはせず、Home の地図の上に重ねる。見た目だけ
+/// デザイン書に合わせて、アイコンを白丸に載せた 2 行構成にしている。
 class AlertBanner extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -246,16 +393,27 @@ class AlertBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: HinaColors.alert, borderRadius: BorderRadius.circular(14), boxShadow: HinaShadow.card),
-      child: Row(children: [
-        const Icon(Icons.warning_amber_rounded, color: Colors.white),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(color: HinaColors.alert, borderRadius: BorderRadius.circular(16), boxShadow: HinaShadow.card),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), shape: BoxShape.circle),
+          child: const HinaIconView(HinaIcon.warning, size: 21, color: Colors.white),
+        ),
         const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: t.bodyLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-          if (subtitle != null) Text(subtitle!, style: t.bodySmall?.copyWith(color: Colors.white.withOpacity(0.9))),
-        ])),
-        if (onClose != null) IconButton(onPressed: onClose, icon: const Icon(Icons.close, color: Colors.white, size: 20)),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: t.bodyLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, height: 1.35), maxLines: 2, overflow: TextOverflow.ellipsis),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(subtitle!, style: t.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.95))),
+            ],
+          ]),
+        ),
+        if (onClose != null)
+          GestureDetector(onTap: onClose, child: const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.close, color: Colors.white, size: 20))),
       ]),
     ).animate().fadeIn(duration: 200.ms).slideY(begin: -0.2, end: 0);
   }
@@ -350,6 +508,32 @@ void showRerouteToast(BuildContext context, String text) {
   );
   overlay.insert(entry);
   Timer(const Duration(seconds: 4), () => entry.remove());
+}
+
+// ---------------------------------------------------------------- DisasterTypeSelector
+/// 地図に重ねるハザードを切り替えるピル(ホームとマップで共用)。
+class DisasterTypeSelector extends StatelessWidget {
+  final DisasterType selected;
+  final ValueChanged<DisasterType> onChanged;
+  static const types = [DisasterType.earthquake, DisasterType.flood, DisasterType.tsunami];
+  const DisasterTypeSelector({super.key, required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(color: HinaColors.surface, borderRadius: BorderRadius.circular(22), boxShadow: HinaShadow.card),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          for (final d in types)
+            GestureDetector(
+              onTap: () => onChanged(d),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(color: selected == d ? HinaColors.mist : Colors.transparent, borderRadius: BorderRadius.circular(18)),
+                child: Text(d.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected == d ? HinaColors.ink : HinaColors.inkSub)),
+              ),
+            ),
+        ]),
+      );
 }
 
 // ---------------------------------------------------------------- HazardLegend

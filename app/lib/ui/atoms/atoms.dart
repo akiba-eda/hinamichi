@@ -3,6 +3,11 @@ import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 
+// 画面側は atoms.dart ひとつで Atoms が揃うようにしておく。
+export 'hina_avatar.dart';
+export 'hina_icons.dart';
+export 'hina_logo.dart';
+
 // ---------------------------------------------------------------- HinaButton
 enum HinaButtonKind { primary, secondary, danger, ghost }
 
@@ -30,9 +35,19 @@ class HinaButton extends StatelessWidget {
     };
     final child = loading
         ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: fg))
+        // Expanded に入れて幅が半分になっても崩れないよう、ラベルは縮める。
+        // 直置きの Text だと長いラベルで RenderFlex overflow になる。
         : Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[Icon(icon, size: 20, color: fg), const SizedBox(width: 8)],
-            Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: fg, fontWeight: FontWeight.w700, fontSize: 16)),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(color: fg, fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+            ),
           ]);
     final btn = FilledButton(
       onPressed: loading ? null : onPressed,

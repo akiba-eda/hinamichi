@@ -4,10 +4,14 @@ import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../core/config.dart';
 import '../../domain/senavi.dart';
+import '../../mock/mock_backend.dart';
+import '../../ui/organisms/hina_basemap.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
+import '../agent_log/agent_log_page.dart';
 import '../gallery/gallery_page.dart';
+import 'profile_page.dart';
 import 'demo_panel.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -33,13 +37,29 @@ class SettingsPage extends ConsumerWidget {
             ])),
           ])),
         ),
-        const SectionHeader('プロフィール'),
+        // ボトムナビは設計書 §17.3 の 4 タブ構成にしたので、AgentLog はここから開く。
+        const SectionHeader('セナヴィの記録'),
         ListTile(
-          leading: const Icon(Icons.person_outline),
-          title: const Text('表示名'),
-          subtitle: Text('${me?['displayName'] ?? 'わたし'}'),
+          leading: const HinaIconView(HinaIcon.log, size: 24, color: HinaColors.inkSub),
+          title: const Text('判断の記録 (AgentLog)'),
+          subtitle: const Text('ツール呼び出し・AIに渡した入力・モデル名とコスト'),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => _editName(context, ref, '${me?['displayName'] ?? ''}'),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AgentLogPage())),
+        ),
+        const SectionHeader('プロフィール'),
+        // アイコン / 名前 / メモ はまとめて 1 画面に。
+        ListTile(
+          leading: HinaAvatar(
+            imageBase64: me?['avatarImage'] as String?,
+            moodName: me?['avatarMood'] as String?,
+            fallbackName: '${me?['displayName'] ?? 'わたし'}',
+            size: 42,
+            ringColor: HinaColors.sky,
+          ),
+          title: Text('${me?['displayName'] ?? 'わたし'}'),
+          subtitle: Text('アイコン・名前・メモを編集', style: t.bodySmall),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfilePage())),
         ),
         ListTile(leading: const Icon(Icons.qr_code_2), title: const Text('招待コード'), subtitle: Text('${me?['inviteCode'] ?? '------'}')),
         const SectionHeader('共有の同意'),
@@ -56,12 +76,69 @@ class SettingsPage extends ConsumerWidget {
           value: consent['shareShelterName'] != false,
           onChanged: (v) => ref.read(apiProvider).register(consent: {'shareShelterName': v}),
         ),
-        const SwitchListTile(secondary: Icon(Icons.gps_off_outlined), title: Text('生の位置情報を共有'), subtitle: Text('常にオフ(設計上、共有しません)'), value: false, onChanged: null),
+        SwitchListTile(
+          secondary: const Icon(Icons.share_location_outlined),
+          title: const Text('現在地をフレンドに共有'),
+          subtitle: Text(
+            ref.watch(locationSharingProvider)
+                ? 'バックグラウンドでも送ります。誰に見せるかは友だち一覧で個別に選びます'
+                : 'オフの間は位置を測りません（電池を使いません）',
+            style: t.bodySmall,
+          ),
+          activeColor: HinaColors.sky,
+          value: ref.watch(locationSharingProvider),
+          onChanged: (v) async {
+            final ok = await ref.read(locationSharingProvider.notifier).set(v);
+            if (!ok && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('位置情報の許可が必要です。設定アプリから「常に許可」にしてください')),
+              );
+            }
+          },
+        ),
+        if (ref.watch(locationSharingProvider))
+          ref.watch(pendingLocationCountProvider).maybeWhen(
+                data: (n) => n == 0
+                    ? const SizedBox.shrink()
+                    : ListTile(
+                        leading: const Icon(Icons.cloud_off_outlined, color: HinaColors.stEvacuating),
+                        title: Text('送信待ち $n件', style: t.bodyMedium),
+                        subtitle: Text('圏外で測った位置です。電波が戻ると古い順に送ります', style: t.bodySmall),
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+        const SectionHeader('地図の見た目'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: HinaSpace.m),
+          child: Column(children: [
+            for (final b in HinaBasemap.values)
+              RadioListTile<HinaBasemap>(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: b,
+                // ignore: deprecated_member_use
+                groupValue: ref.watch(basemapProvider),
+                activeColor: HinaColors.sky,
+                title: Text(b.label, style: t.bodyLarge),
+                subtitle: Text(b.note, style: t.bodySmall),
+                // ignore: deprecated_member_use
+                onChanged: (v) => v == null ? null : ref.read(basemapProvider.notifier).set(v),
+              ),
+          ]),
+        ),
         const SectionHeader('地図レイヤー'),
         SwitchListTile(title: const Text('浸水想定区域'), value: demo.showFlood, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(flood: v)),
         SwitchListTile(title: const Text('津波浸水想定'), value: demo.showTsunami, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(tsunami: v)),
         SwitchListTile(title: const Text('土砂災害警戒区域'), value: demo.showLandslide, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(landslide: v)),
         const SectionHeader('開発者向け'),
+        SwitchListTile(
+          secondary: const Icon(Icons.dns_outlined),
+          title: const Text('モックモード'),
+          subtitle: const Text('サーバーを使わず端末内の仮データで動かす。繋ぎ込み後の挙動を先に確認するため'),
+          activeColor: HinaColors.sky,
+          value: ref.watch(mockModeProvider),
+          onChanged: (v) => ref.read(mockModeProvider.notifier).set(v),
+        ),
         SwitchListTile(
           secondary: const Icon(Icons.science_outlined),
           title: const Text('DEMO モード'),
@@ -77,18 +154,6 @@ class SettingsPage extends ConsumerWidget {
         Center(child: Text('ヒナミチ v0.1 — 地理院タイル / ハザードマップポータルサイト / 指定緊急避難場所データ(国土地理院) / P2P地震情報 / 気象庁', textAlign: TextAlign.center, style: t.bodySmall)),
       ]),
     );
-  }
-
-  void _editName(BuildContext context, WidgetRef ref, String cur) {
-    final c = TextEditingController(text: cur);
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      title: const Text('表示名'),
-      content: TextField(controller: c, maxLength: 30),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('やめる')),
-        FilledButton(onPressed: () async { await ref.read(apiProvider).register(displayName: c.text.trim()); if (ctx.mounted) Navigator.pop(ctx); }, child: const Text('保存')),
-      ],
-    ));
   }
 
   void _editApi(BuildContext context, WidgetRef ref) async {

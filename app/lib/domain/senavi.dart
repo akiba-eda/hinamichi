@@ -1,4 +1,5 @@
 import 'models.dart';
+import 'weather.dart';
 
 /// セナヴィの表情 — assets/senavi/{name}.png
 enum SenaviMood {
@@ -8,17 +9,35 @@ enum SenaviMood {
 }
 
 /// 設計書 §17.4 — state → mood / line. Single source for every screen.
+///
+/// 2026-09-20 のセナヴィ表情シート(docs/senavi_sheet_v2.png)に合わせて
+/// 3 つ差し替えた。シートは 8 枚の絵に状態ラベルが直接振られており、
+/// §17.4 の当初案より細かく描き分けられている:
+///   避難提案   → lookback (「一緒に行こう」と振り向いて呼びかける絵)
+///   対象外/様子見 → lying   (「念のため様子を見てるね」と伏せる絵)
+///   AI応答なし → troubled (「返事が遅いから安全ルールで決めたよ」の絵)
 SenaviMood moodFor(IncidentState s) => switch (s) {
       IncidentState.idle => SenaviMood.normal,
       IncidentState.assessing => SenaviMood.serious,
-      IncidentState.proposing => SenaviMood.serious,
+      IncidentState.proposing => SenaviMood.lookback,
       IncidentState.guiding => SenaviMood.running,
       IncidentState.reselecting => SenaviMood.surprised,
       IncidentState.arrived || IncidentState.safeZone => SenaviMood.smile,
-      IncidentState.notRelevant || IncidentState.monitoringStay => SenaviMood.normal,
-      IncidentState.fallbackGuiding => SenaviMood.serious,
+      IncidentState.notRelevant || IncidentState.monitoringStay => SenaviMood.lying,
+      IncidentState.fallbackGuiding => SenaviMood.troubled,
       IncidentState.closed => SenaviMood.normal,
       IncidentState.offline => SenaviMood.troubled,
+    };
+
+/// 平時(idle)の表情は災害の状態では決まらないので、雨雲の見通しから選ぶ。
+/// 「災害が起きていないときも意味がある」ための表情割り当て。
+SenaviMood moodForWeather(RainNowcast? w) => switch (w?.outlook) {
+      null || RainOutlook.calm || RainOutlook.cloudy => SenaviMood.normal,
+      RainOutlook.clear => SenaviMood.smile,
+      RainOutlook.rainSoon => SenaviMood.lookback,
+      RainOutlook.strongRainSoon => SenaviMood.serious,
+      RainOutlook.rainNow => SenaviMood.serious,
+      RainOutlook.strongRainNow => SenaviMood.troubled,
     };
 
 String lineFor(IncidentState s, {String? shelter, int? walkMin, String? weather, String? custom}) {

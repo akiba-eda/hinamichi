@@ -46,12 +46,16 @@ if p.exists():
     entries = {
         "NSLocationWhenInUseUsageDescription": "災害時に現在地周辺の避難場所と安全な経路を案内するために使います。位置情報そのものは保存・共有しません。",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "災害通知を受け取った際に、あなたに関係があるかを判断するために使います。",
+        "NSPhotoLibraryUsageDescription": "プロフィールのアイコンに使う画像を選ぶためだけに使います。選んだ画像以外は読み取りません。",
     }
     for k, v in entries.items():
         if k not in s:
             s = s.replace("</dict>\n</plist>", f"\t<key>{k}</key>\n\t<string>{v}</string>\n</dict>\n</plist>")
     if "UIBackgroundModes" not in s:
-        s = s.replace("</dict>\n</plist>", "\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t</array>\n</dict>\n</plist>")
+        s = s.replace("</dict>\n</plist>", "\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t\t<string>location</string>\n\t</array>\n</dict>\n</plist>")
+    elif "<string>location</string>" not in s:
+        # 既に配列があるなら location だけ足す(フレンドへの位置共有に必要)
+        s = s.replace("<key>UIBackgroundModes</key>\n\t<array>", "<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>location</string>", 1)
     if "CFBundleDisplayName" in s:
         s = re.sub(r"(<key>CFBundleDisplayName</key>\s*<string>)[^<]*(</string>)", r"\1ヒナミチ\2", s)
     p.write_text(s)

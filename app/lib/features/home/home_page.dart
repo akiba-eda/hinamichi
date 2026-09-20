@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +9,13 @@ import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
+import '../../domain/weather.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../../ui/organisms/hina_map.dart';
 import '../agent_log/agent_log_page.dart';
+import '../friends/friend_detail_sheet.dart';
 import '../shelter/shelter_detail_page.dart';
 import 'approval_sheet.dart';
 
@@ -53,11 +56,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _fitRoute(Incident inc, LatLng here) {
-    if (inc.shelter == null || _fittedFor == '${inc.id}:${inc.shelter!.id}') return;
-    _fittedFor = '${inc.id}:${inc.shelter!.id}';
+    if (inc.shelter == null) return;
+    final key = '${inc.id}:${inc.shelter!.id}';
+    if (_fittedFor == key) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final h = MediaQuery.sizeOf(context).height;
+      // 画面より大きい padding を渡すと可視領域が負になり、ズームが NaN になって
+      // タイルが一枚も引けなくなる(地図が背景色のまま灰色になる)。画面高に対する
+      // 割合で頭を押さえる。
+      final top = math.min(120.0, h * 0.15);
+      final bottom = math.min(320.0, h * 0.40);
       final pts = inc.route?.points.isNotEmpty == true ? inc.route!.points : [here, inc.shelter!.point];
-      _map.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(pts), padding: const EdgeInsets.fromLTRB(40, 120, 40, 320)));
+      try {
+        _map.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(pts), padding: EdgeInsets.fromLTRB(40, top, 40, bottom)));
+        // 成功したときだけ覚える。失敗を覚えると二度と合わせ直せない。
+        _fittedFor = key;
+      } catch (e) {
+        debugPrint('[Home] fitCamera failed, will retry next frame: $e');
+      }
     });
   }
 
@@ -92,6 +109,16 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     final shelters = inc?.shelter != null && (inc!.state == IncidentState.proposing || inc.state.isGuiding || inc.state.isFinished) ? <ShelterInfo>[inc.shelter!] : (nearby.value?.shelters ?? const <ShelterInfo>[]);
 
+    // 詳細シートの「地図で見る」から来た指定を拾って寄せる。使い捨て。
+    final focus = ref.watch(mapFocusProvider);
+    if (focus != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _map.move(focus, 16);
+        ref.read(mapFocusProvider.notifier).state = null;
+      });
+    }
+
     return Scaffold(
       body: Stack(children: [
         Positioned.fill(
@@ -105,6 +132,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             showTsunami: demo.showTsunami || inc?.type == DisasterType.tsunami,
             showLandslide: demo.showLandslide,
             mood: senavi.mood,
+            basemap: ref.watch(basemapProvider),
+            friends: ref.watch(friendsOnMapProvider),
+            onFriendTap: (f) => showFriendDetail(context, f),
+            meetup: ref.watch(meetupProvider),
             onShelterTap: (s) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ShelterDetailPage(shelter: s, incident: inc))),
           ),
         ),
@@ -118,12 +149,19 @@ class _HomePageState extends ConsumerState<HomePage> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                 child: Row(children: [
-                  _RoundButton(icon: Icons.my_location, onTap: () async {
+                  _RoundButton(icon: HinaIcon.locate, onTap: () async {
                     final r = await ref.read(locationProvider.notifier).refresh();
                     _map.move(r.point, 15);
                   }),
                   const SizedBox(width: 8),
-                  if (state == IncidentState.idle) _TypeSelector(),
+                  if (state == IncidentState.idle)
+                    DisasterTypeSelector(
+                      selected: ref.watch(mapDisasterTypeProvider),
+                      onChanged: (d) {
+                        ref.read(mapDisasterTypeProvider.notifier).state = d;
+                        ref.read(demoProvider.notifier).setLayers(flood: d != DisasterType.earthquake, tsunami: d == DisasterType.tsunami);
+                      },
+                    ),
                   const Spacer(),
                   StatusChip(myStatus.state),
                 ]),
@@ -187,7 +225,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             const SizedBox(width: 8),
             Expanded(child: HinaButton.secondary('別の場所へ', onPressed: _acting ? null : () => _act(() async { await ctrl.reselect(inc.id, reason: 'user'); }))),
             const SizedBox(width: 8),
-            _RoundButton(icon: Icons.chat_bubble_outline, onTap: () => showApprovalSheet(context, ref, incidentId: inc.id)),
+            _RoundButton(icon: HinaIcon.chat, onTap: () => showApprovalSheet(context, ref, incidentId: inc.id)),
           ]),
         ),
       ]);
@@ -196,7 +234,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: inc.shelter != null ? '${inc.shelter!.name} / 同意済みの家族・友人に共有しました' : null),
         const SizedBox(height: 12),
         Row(children: [
-          Expanded(child: HinaButton.secondary('判断の記録を見る', icon: Icons.receipt_long_outlined, onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AgentLogPage(incidentId: inc.id))))),
+          Expanded(child: HinaButton.secondary('判断の記録', icon: Icons.receipt_long_outlined, onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AgentLogPage(incidentId: inc.id))))),
           const SizedBox(width: 8),
           Expanded(child: HinaButton.primary('ホームに戻る', onPressed: () => _act(() => ctrl.close(inc.id)))),
         ]),
@@ -212,8 +250,10 @@ class _HomePageState extends ConsumerState<HomePage> {
         ]),
       ]));
     } else {
+      // 平時。雨に動きがあるときはそれを補足に出し、無ければこの場所のハザードに譲る。
       final hz = nearby.value?.hazard;
-      final sub = hz == null ? '現在地周辺の避難場所とハザードを表示しています' : 'この場所: 浸水 ${hz.floodLabel}${hz.landslide ? ' / 土砂警戒' : ''}${hz.tsunami > 0 ? ' / 津波想定' : ''}';
+      final hazardSub = hz == null ? '現在地周辺の避難場所とハザードを表示しています' : 'この場所: 浸水 ${hz.floodLabel}${hz.landslide ? ' / 土砂警戒' : ''}${hz.tsunami > 0 ? ' / 津波想定' : ''}';
+      final sub = weatherSub(ref.watch(weatherProvider).value) ?? hazardSub;
       body = HinaCard(child: SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: sub));
     }
     return SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s), child: body));
@@ -221,7 +261,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 class _RoundButton extends StatelessWidget {
-  final IconData icon;
+  final HinaIcon icon;
   final VoidCallback onTap;
   const _RoundButton({required this.icon, required this.onTap});
   @override
@@ -230,31 +270,10 @@ class _RoundButton extends StatelessWidget {
         shape: const CircleBorder(),
         elevation: 2,
         shadowColor: Colors.black26,
-        child: InkWell(customBorder: const CircleBorder(), onTap: onTap, child: SizedBox(width: 44, height: 44, child: Icon(icon, color: HinaColors.ink, size: 22))),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(width: 44, height: 44, child: Center(child: HinaIconView(icon, size: 22))),
+        ),
       );
-}
-
-class _TypeSelector extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(mapDisasterTypeProvider);
-    return Container(
-      decoration: BoxDecoration(color: HinaColors.surface, borderRadius: BorderRadius.circular(22), boxShadow: HinaShadow.card),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        for (final d in [DisasterType.earthquake, DisasterType.flood, DisasterType.tsunami])
-          GestureDetector(
-            onTap: () {
-              ref.read(mapDisasterTypeProvider.notifier).state = d;
-              ref.read(demoProvider.notifier).setLayers(flood: d != DisasterType.earthquake, tsunami: d == DisasterType.tsunami);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(color: t == d ? HinaColors.mist : Colors.transparent, borderRadius: BorderRadius.circular(18)),
-              child: Text(d.label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: t == d ? HinaColors.ink : HinaColors.inkSub)),
-            ),
-          ),
-      ]),
-    );
-  }
 }

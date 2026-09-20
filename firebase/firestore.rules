@@ -7,6 +7,12 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid))
         && get(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid)).data.status == 'accepted';
     }
+    // 位置は「承認済み」だけでは足りず、その相手に対して shareLocation を
+    // 明示的に立てているときだけ読める。既定は共有しない。
+    function isLocationSharedWith(uid) {
+      return isAcceptedFriendOf(uid)
+        && get(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid)).data.shareLocation == true;
+    }
 
     // Own profile: read; client may only touch consent/displayName (everything else via server)
     match /users/{uid} {
@@ -14,15 +20,22 @@ service cloud.firestore {
       allow update: if isMe(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['consent', 'displayName', 'updatedAt']);
       allow create, delete: if false;
     }
-    // Friend list: read own; toggle autoShare only (server writes the rest)
+    // Friend list: read own; toggle autoShare / shareLocation only (server writes the rest)
     match /friends/{uid}/list/{friendUid} {
       allow read: if isMe(uid);
-      allow update: if isMe(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['autoShare']);
+      allow update: if isMe(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['autoShare', 'shareLocation']);
       allow create, delete: if false;
     }
     // Public status: owner + accepted friends can read. Server-only writes.
     match /statuses/{uid} {
       allow read: if isMe(uid) || isAcceptedFriendOf(uid);
+      allow write: if false;
+    }
+    // Last known location. Readable only by friends the owner explicitly
+    // allowed. Written by the server only, so a client cannot fake someone
+    // else's position.
+    match /locations/{uid} {
+      allow read: if isMe(uid) || isLocationSharedWith(uid);
       allow write: if false;
     }
     // Incidents & agent log: owner read-only
