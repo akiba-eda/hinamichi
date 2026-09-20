@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAcceptedFriendOf(uid) {
+      return signedIn() && exists(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid))
+        && get(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid)).data.status == 'accepted';
+    }
+
+    // Own profile: read; client may only touch consent/displayName (everything else via server)
+    match /users/{uid} {
+      allow read: if isMe(uid);
+      allow update: if isMe(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['consent', 'displayName', 'updatedAt']);
+      allow create, delete: if false;
+    }
+    // Friend list: read own; toggle autoShare only (server writes the rest)
+    match /friends/{uid}/list/{friendUid} {
+      allow read: if isMe(uid);
+      allow update: if isMe(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['autoShare']);
+      allow create, delete: if false;
+    }
+    // Public status: owner + accepted friends can read. Server-only writes.
+    match /statuses/{uid} {
+      allow read: if isMe(uid) || isAcceptedFriendOf(uid);
+      allow write: if false;
+    }
+    // Incidents & agent log: owner read-only
+    match /incidents/{incidentId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+      match /agentLog/{seq} {
+        allow read: if signedIn() && get(/databases/$(database)/documents/incidents/$(incidentId)).data.uid == request.auth.uid;
+        allow write: if false;
+      }
+    }
+    // Alerts & crowd: public read, server-only write
+    match /alerts/{id} { allow read: if signedIn(); allow write: if false; }
+    match /shelterCrowd/{id} { allow read: if signedIn(); allow write: if false; }
+    match /shelterCache/{id} { allow read: if signedIn(); allow write: if false; }
+    match /alertsSeen/{id} { allow read, write: if false; }
+    match /approvals/{id} { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+  }
+}

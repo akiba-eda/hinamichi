@@ -1,0 +1,14 @@
+node_modules/
+.vercel/
+.env*
+!.env.example
+dist/
+app/build/
+app/.dart_tool/
+app/ios/Pods/
+app/android/.gradle/
+app/android/local.properties
+app/ios/Runner/GoogleService-Info.plist
+app/android/app/google-services.json
+app/lib/firebase_options.dart
+*.log
