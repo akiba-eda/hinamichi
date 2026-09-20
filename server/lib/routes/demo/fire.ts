@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { route, body, requireDemoAdmin } from "../../lib/http.js";
-import { createDemoAlert, deliverDemoAlert } from "../../lib/alerts.js";
-import { startIncident } from "../../lib/agent/service.js";
+import { route, body, requireDemoAdmin } from "../../http.js";
+import { createDemoAlert, deliverDemoAlert } from "../../alerts.js";
+import { startIncident } from "../../agent/service.js";
 
 /**
  * Demo: fire a disaster anchored at the caller's current location, push to the caller's devices,

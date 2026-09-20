@@ -38,17 +38,24 @@ export type RunOutput = {
   shelter?: { id: string; name: string; address: string; lat: number; lng: number; walkMin: number; distanceM: number; elevationM?: number };
   reasons: string[];
   userMessage: string;
-  route?: { points: [number, number][]; distanceM: number; durationS: number; provider: string };
+  route?: { points: { lat: number; lng: number }[]; distanceM: number; durationS: number; provider: string };
   validatedBy: "llm+rules" | "llm+rules+escalated" | "fallback" | "none";
   costUsd: number;
   llmCalls: number;
 };
 
-const LLM_BUDGET_MS = 9000;
+/// 避難先を決める LLM に与える持ち時間。
+///
+/// 9 秒だと実データで足りなかった(候補 8 件 + tool calling で上位モデルが
+/// 間に合わず、毎回フォールバックに落ちていた)。Vercel の maxDuration が
+/// 60 秒あるので、ツール呼び出しと経路取得の分を残して 28 秒まで取る。
+/// ここを削ると「AI が決めた」行が AgentLog から消えるので、短くしすぎない。
+const LLM_BUDGET_MS = 28000;
 const MAX_TOOL_TURNS = 6;
 
 function metaFields(m: OrcaMeta) {
   return {
+    requestId: m.requestId,
     model: m.resolvedModel,
     router: m.router,
     fallbackLevel: m.fallbackLevel,
@@ -219,7 +226,7 @@ async function triage(input: RunInput, area: AreaInfo, hz: Hazard, log: Incident
       tier: "triage", sessionId: input.incidentId, promptName: PROMPT_TRIAGE, systemFallback: TRIAGE_SYSTEM,
       promptVariables: { area_name: area.name, disaster_type: alert.type },
       messages, tools: triageTools, toolChoice: { type: "function", function: { name: "submit_triage" } },
-      timeoutMs: 6000, demoFail: input.demo?.failLlm,
+      timeoutMs: 12000, demoFail: input.demo?.failLlm, // 一次判定。小型モデルでも実入力では数秒かかる
     });
     const call = data.choices[0]?.message?.tool_calls?.find((c): c is Extract<typeof c, { type: "function" }> => c.type === "function");
     const args = call ? safeJson(call.function.arguments) : undefined;

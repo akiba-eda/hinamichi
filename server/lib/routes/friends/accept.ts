@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body, HttpError } from "../../lib/http.js";
-import { db, COL, FieldValue } from "../../lib/firebase.js";
+import { route, body, HttpError } from "../../http.js";
+import { db, COL, FieldValue } from "../../firebase.js";
 
 /** Add a friend by invite code. Both sides become "accepted" immediately (hackathon simplification). */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

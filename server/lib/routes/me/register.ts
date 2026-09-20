@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { db, COL, FieldValue } from "../../lib/firebase.js";
+import { route, body } from "../../http.js";
+import { db, COL, FieldValue } from "../../firebase.js";
 
 const Body = z.object({
   displayName: z.string().min(1).max(30).optional(),

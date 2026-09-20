@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { route, body, requireDemoAdmin } from "../../lib/http.js";
-import { setCrowdFull } from "../../lib/tools/crowd.js";
-import { db, COL } from "../../lib/firebase.js";
-import { reselect } from "../../lib/agent/service.js";
+import { route, body, requireDemoAdmin } from "../../http.js";
+import { setCrowdFull } from "../../tools/crowd.js";
+import { db, COL } from "../../firebase.js";
+import { reselect } from "../../agent/service.js";
 
 /** Demo: mark a shelter full (or relieve it) and re-route the caller's active incident if affected. */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

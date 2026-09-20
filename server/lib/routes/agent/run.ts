@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { LocationBody, startIncident } from "../../lib/agent/service.js";
+import { route, body } from "../../http.js";
+import { LocationBody, startIncident } from "../../agent/service.js";
 
 /** Start (or resume) the agent for an alert. Called when the app opens from a push. */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

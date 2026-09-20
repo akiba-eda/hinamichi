@@ -6,6 +6,7 @@ import { runAgent, type RunOutput } from "./loop.js";
 import { adjustCrowd } from "../tools/crowd.js";
 import { haversineM } from "../geo.js";
 import { incidentRef, notifyFriends, publishStatus, setIncident, IncidentLog } from "./store.js";
+import { settledCost } from "../orca.js";
 import type { AlertDoc, IncidentState, LocationSource } from "./types.js";
 
 export const LocationBody = z.object({
@@ -108,7 +109,21 @@ export async function applyAction(uid: string, incidentId: string, action: Actio
   await log.flush();
   const pub = await publishStatus(uid, incidentId, state, d.shelter?.name, d.userMessage);
   if (friendMsg) await notifyFriends(uid, "ヒナミチ", friendMsg, { type: "status", state: pub, incidentId });
+  if (state === "arrived" || state === "safe_zone" || state === "closed") void settleIncidentCost(incidentId).catch(() => {});
   return { state };
+}
+
+/** OrcaRouter: replace inline cost estimates with settled values from GET /v1/generation (設計書 §18 #11). */
+export async function settleIncidentCost(incidentId: string) {
+  const logs = await incidentRef(incidentId).collection("agentLog").get();
+  const ids = logs.docs.map((d) => (d.data() as any).requestId).filter((x): x is string => typeof x === "string");
+  if (!ids.length) return;
+  const settled = await Promise.all(ids.map((id) => settledCost(id)));
+  const total = settled.reduce<number>((a, b) => a + (b ?? 0), 0);
+  const known = settled.filter((x) => x != null).length;
+  const log = new IncidentLog(incidentId);
+  log.add({ kind: "cost", audience: "judge", title: `確定コスト: $${total.toFixed(5)}(${known}/${ids.length} 件を /v1/generation で照合)`, detail: "OrcaRouter の確定値。インライン usage.cost_usd と食い違う場合はこちらが正" });
+  await Promise.all([log.flush(), setIncident(incidentId, { cost: { settledUsd: total, settledCalls: known } })]);
 }
 
 /** Position update while guiding: arrival geofence (100 m). Nothing stored. */

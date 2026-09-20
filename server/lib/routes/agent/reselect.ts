@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { LocationBody, reselect } from "../../lib/agent/service.js";
+import { route, body } from "../../http.js";
+import { LocationBody, reselect } from "../../agent/service.js";
 
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {
   const b = LocationBody.extend({ incidentId: z.string(), reason: z.enum(["crowd", "user", "alert", "route"]).default("user"), demo: z.object({ failLlm: z.boolean().optional() }).optional() }).parse(body(req));

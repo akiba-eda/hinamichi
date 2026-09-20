@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { db, COL } from "../../lib/firebase.js";
+import { route, body } from "../../http.js";
+import { db, COL } from "../../firebase.js";
 
 /** Toggle auto-share for one friend. */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

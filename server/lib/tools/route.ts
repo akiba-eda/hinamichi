@@ -1,8 +1,14 @@
 import { haversineM, walkMinutes, type LatLng } from "../geo.js";
 
 export type Route = {
-  /** [lat, lng][] */
-  points: [number, number][];
+  /**
+   * 経路の頂点。
+   *
+   * `[lat, lng][]` にしたくなるが、**Firestore は配列の中に配列を置けない**
+   * (INVALID_ARGUMENT: invalid nested entity)。incidents ドキュメントに
+   * そのまま入るので、マップの配列にしてある。
+   */
+  points: { lat: number; lng: number }[];
   distanceM: number;
   durationS: number;
   provider: "ors" | "straight";
@@ -25,7 +31,7 @@ export async function getRoute(from: LatLng, to: LatLng): Promise<Route> {
         const coords: [number, number][] = f?.geometry?.coordinates ?? [];
         if (coords.length > 1) {
           return {
-            points: coords.map(([lng, lat]) => [lat, lng] as [number, number]),
+            points: coords.map(([lng, lat]) => ({ lat, lng })),
             distanceM: Math.round(f.properties?.summary?.distance ?? haversineM(from, to)),
             durationS: Math.round(f.properties?.summary?.duration ?? walkMinutes(haversineM(from, to)) * 60),
             provider: "ors",
@@ -39,8 +45,8 @@ export async function getRoute(from: LatLng, to: LatLng): Promise<Route> {
   const d = haversineM(from, to);
   return {
     points: [
-      [from.lat, from.lng],
-      [to.lat, to.lng],
+      { lat: from.lat, lng: from.lng },
+      { lat: to.lat, lng: to.lng },
     ],
     distanceM: Math.round(d),
     durationS: walkMinutes(d) * 60,

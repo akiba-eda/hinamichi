@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { applyAction } from "../../lib/agent/service.js";
+import { route, body } from "../../http.js";
+import { applyAction } from "../../agent/service.js";
 
 /** Human gate + lifecycle: start (approve) / later / arrived / safe_zone / close. */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

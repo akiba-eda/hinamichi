@@ -1,5 +1,5 @@
-import { route } from "../../lib/http.js";
-import { broadcastAlert, pollQuakes, pollWarnings } from "../../lib/alerts.js";
+import { route } from "../../http.js";
+import { broadcastAlert, pollQuakes, pollWarnings } from "../../alerts.js";
 
 /**
  * Called by cron-job.org every 2 minutes: GET /api/watch/disasters?token=...

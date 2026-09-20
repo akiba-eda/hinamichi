@@ -3,12 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "/opt/homebrew/opt/node@22/bin/node node_modules/vercel/dist/index.js dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:demo": "tsx scripts/seedDemo.ts"
+    "seed:demo": "tsx scripts/seedDemo.ts",
+    "deploy": "/opt/homebrew/opt/node@22/bin/node node_modules/vercel/dist/index.js deploy"
   },
   "dependencies": {
     "@vercel/node": "^5.3.0",
@@ -22,6 +25,7 @@
     "@types/pngjs": "^6.0.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
+    "vercel": "^59.23.2",
     "vitest": "^2.1.0"
   }
 }

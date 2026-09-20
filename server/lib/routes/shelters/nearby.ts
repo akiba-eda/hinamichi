@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { listShelters } from "../../lib/tools/shelters.js";
-import { getHazard, TileCache } from "../../lib/tools/hazard.js";
-import { getCrowd } from "../../lib/tools/crowd.js";
-import { normaliseDisaster } from "../../lib/agent/loop.js";
+import { route, body } from "../../http.js";
+import { listShelters } from "../../tools/shelters.js";
+import { getHazard, TileCache } from "../../tools/hazard.js";
+import { getCrowd } from "../../tools/crowd.js";
+import { normaliseDisaster } from "../../agent/loop.js";
 
 /** Peacetime map: nearby shelters for a disaster type + hazard at the user's point. Nothing is stored. */
 export default route({ methods: ["POST"], auth: "user" }, async (req) => {

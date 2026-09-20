@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body } from "../../lib/http.js";
-import { updatePosition } from "../../lib/agent/service.js";
+import { route, body } from "../../http.js";
+import { updatePosition } from "../../agent/service.js";
 
 /** Periodic position while guiding → arrival geofence. Coordinates are not persisted. */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { route, body, requireDemoAdmin } from "../../lib/http.js";
-import { db, COL, FieldValue } from "../../lib/firebase.js";
+import { route, body, requireDemoAdmin } from "../../http.js";
+import { db, COL, FieldValue } from "../../firebase.js";
 
 const MOCK = [
   { key: "mock_mother", displayName: "お母さん", relation: "家族" },

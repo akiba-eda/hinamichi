@@ -82,6 +82,7 @@ export type AgentLogEntry = {
   audience: "user" | "judge" | "both";
   toolName?: string;
   chosenBy?: "llm" | "system";
+  requestId?: string; // X-Orca-Request-Id → GET /v1/generation で確定コスト
   model?: string;
   router?: string;
   fallbackLevel?: number;

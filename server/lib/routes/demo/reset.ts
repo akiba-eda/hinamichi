@@ -1,5 +1,5 @@
-import { route, requireDemoAdmin } from "../../lib/http.js";
-import { db, COL, FieldValue } from "../../lib/firebase.js";
+import { route, requireDemoAdmin } from "../../http.js";
+import { db, COL, FieldValue } from "../../firebase.js";
 
 /** Demo: close the caller's incidents, clear crowd counters they affected, reset own status. */
 export default route({ methods: ["POST"], auth: "user" }, async (_req, _res, ctx) => {
