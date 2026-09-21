@@ -265,9 +265,38 @@ final activeMeetupProvider = StreamProvider<Meetup?>((ref) {
       .collection('meetups')
       .where('memberUids', arrayContains: uid)
       .where('active', isEqualTo: true)
+      // 並び順を決めないと、Firestore は書類 ID 順で返す。ID は自動採番なので
+      // どちらが出るかが運任せになり、古い合流が新しい合流を隠すことがあった。
+      .orderBy('createdAt', descending: true)
       .limit(1)
       .snapshots()
-      .map((q) => q.docs.isEmpty ? null : Meetup.fromDoc(q.docs.first));
+      .map((q) => q.docs.isEmpty ? null : Meetup.fromDoc(q.docs.first))
+      .handleError((Object e) {
+        // インデックス未作成や権限エラーを「合流なし」と同じ顔にしない。
+        debugPrint('meetup stream failed: $e');
+      });
+});
+
+/// 合流のメンバーそれぞれが、合流地点まで徒歩何分か。
+///
+/// 経路 API を人数分叩くと待たされるので、最終位置からの直線を 80m/分で概算する。
+/// 位置を共有してくれていない相手は取れないので、地図にも出ない相手として省く
+/// ── 「分からない」を勝手に埋めない。
+final meetupMemberEtasProvider = Provider<List<({String uid, String name, int walkMin})>>((ref) {
+  final m = ref.watch(meetupProvider);
+  final uid = ref.watch(uidProvider);
+  if (m == null) return const [];
+  final friends = ref.watch(friendsProvider).value ?? const <FriendEntry>[];
+  final out = <({String uid, String name, int walkMin})>[];
+  for (final member in m.memberUids) {
+    if (member == uid) continue;
+    final loc = ref.watch(friendLocationProvider(member)).value;
+    if (loc == null) continue;
+    final name = friends.where((f) => f.uid == member).map((f) => f.displayName).firstOrNull ?? '友だち';
+    out.add((uid: member, name: name, walkMin: Meetup.walkMinutes(loc.point, m.point)));
+  }
+  out.sort((a, b) => a.walkMin.compareTo(b.walkMin));
+  return out;
 });
 
 /// 相手ごとのやりとり。

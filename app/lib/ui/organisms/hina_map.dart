@@ -164,7 +164,8 @@ class _HinaMapState extends State<HinaMap> {
               height: 48,
               alignment: Alignment.topCenter,
               child: Stack(alignment: Alignment.topCenter, children: [
-                Positioned.fill(child: CustomPaint(painter: _Pin(HinaColors.stArrived))),
+                // 災害から作った合流は赤。バナーと色を揃えて、平時の待ち合わせと区別する。
+                Positioned.fill(child: CustomPaint(painter: _Pin(widget.meetup!.fromIncident ? HinaColors.alert : HinaColors.stArrived))),
                 const Positioned(top: 6, child: Icon(Icons.handshake, size: 18, color: Colors.white)),
               ]),
             ),

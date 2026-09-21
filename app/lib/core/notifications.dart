@@ -11,6 +11,10 @@ class Notifications {
   /// Called with the alertId whenever the user opens the app from an alert notification.
   static void Function(String alertId)? onOpenAlert;
 
+  /// 合流に誘われた通知を開いたとき。以前は受け口が無く、タップしても何も
+  /// 起きなかった(送る側だけ type:"meetup" を付けていた)。
+  static void Function()? onOpenMeetup;
+
   static Future<String?> init() async {
     const initSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -44,9 +48,11 @@ class Notifications {
           const NotificationDetails(android: AndroidNotificationDetails('hinamichi_alerts', '災害アラート', importance: Importance.max, priority: Priority.high), iOS: DarwinNotificationDetails()),
           payload: data['type'] == 'alert' ? data['alertId'] : null);
       if (data['type'] == 'alert' && data['alertId'] != null) onOpenAlert?.call(data['alertId']!);
+      if (data['type'] == 'meetup') onOpenMeetup?.call();
     });
     FirebaseMessaging.onMessageOpenedApp.listen((m) {
       if (m.data['type'] == 'alert' && m.data['alertId'] != null) onOpenAlert?.call(m.data['alertId']!);
+      if (m.data['type'] == 'meetup') onOpenMeetup?.call();
     });
     final initial = await fcm.getInitialMessage();
     if (initial != null && initial.data['type'] == 'alert' && initial.data['alertId'] != null) {

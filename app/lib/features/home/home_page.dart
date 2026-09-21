@@ -181,6 +181,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (state == IncidentState.idle)
                     DisasterTypeSelector(
                       selected: ref.watch(mapDisasterTypeProvider),
+                      // 件数を添えて、切り替えで避難場所の顔ぶれが変わることを見せる。
+                      shelterCount: nearby.value?.shelters.length,
                       onChanged: (d) {
                         ref.read(mapDisasterTypeProvider.notifier).state = d;
                         ref.read(demoProvider.notifier).setLayers(flood: d != DisasterType.earthquake, tsunami: d == DisasterType.tsunami);
@@ -310,12 +312,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       final sub = weatherSub(ref.watch(weatherProvider).value) ?? hazardSub;
       // 吹き出しから聞けるようにする。何を聞けるかは開いた先で例を出す
       // ── 入口が無いと、聞けること自体に気づかれない。
-      final meetup = ref.watch(meetupProvider);
       body = Column(mainAxisSize: MainAxisSize.min, children: [
-        if (meetup != null) ...[
-          MeetupBanner(meetup: meetup, focusOnTap: false),
-          const SizedBox(height: 8),
-        ],
         HinaCard(
         onTap: () => showAskSheet(context),
         child: Column(children: [
@@ -330,7 +327,22 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ]);
     }
-    return SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s), child: body));
+    // 合流のバナーは状態によらず出す。以前は平時ブランチにしか無く、
+    // 「避難先で合流」という災害時の用途が、まさにその災害中に消えていた。
+    final meetup = ref.watch(meetupProvider);
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (meetup != null) ...[
+            MeetupBanner(meetup: meetup, focusOnTap: false),
+            const SizedBox(height: 8),
+          ],
+          body,
+        ]),
+      ),
+    );
   }
 }
 

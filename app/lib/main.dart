@@ -76,6 +76,14 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
 
   Future<void> _bootstrap() async {
     Notifications.onOpenAlert = _handleAlert;
+    // 合流に誘われた通知を開いたら、ホームで旗の所まで寄せる。
+    Notifications.onOpenMeetup = () {
+      if (!mounted) return;
+      final m = ref.read(meetupProvider);
+      if (m != null) ref.read(mapFocusProvider.notifier).state = m.point;
+      ref.read(selectedTabProvider.notifier).state = 0;
+      setState(() => _started = true);
+    };
 
     // 通知の初期化を待たない。iOS シミュレータ(APNs なし)では
     // FirebaseMessaging.getInitialMessage() が返らないことがあり、以前はここで

@@ -128,9 +128,17 @@ class ApiClient {
   Future<Map<String, dynamic>> addPlace(Map<String, dynamic> place) => post('/api/me/places', {'place': place});
   Future<Map<String, dynamic>> removePlace(String placeId) => post('/api/me/places', {'remove': placeId});
 
-  Future<Map<String, dynamic>> startMeetup({required String name, required double lat, required double lng, required List<String> memberUids}) =>
-      post('/api/meetup/start', {'name': name, 'lat': lat, 'lng': lng, 'memberUids': memberUids});
-  Future<Map<String, dynamic>> endMeetup(String meetupId) => post('/api/meetup/end', {'meetupId': meetupId});
+  Future<Map<String, dynamic>> startMeetup({
+    required String name,
+    required double lat,
+    required double lng,
+    required List<String> memberUids,
+    bool fromIncident = false,
+  }) =>
+      post('/api/meetup/start', {'name': name, 'lat': lat, 'lng': lng, 'memberUids': memberUids, 'fromIncident': fromIncident});
+
+  /// 合流から抜ける。押した人だけが外れ、残り1人以下になったら閉じる。
+  Future<Map<String, dynamic>> leaveMeetup(String meetupId) => post('/api/meetup/end', {'meetupId': meetupId});
 
   /// 本人が自分で打つメッセージ。エージェントが代筆する経路(承認ゲート付きの
   /// messageFriends)とは別。

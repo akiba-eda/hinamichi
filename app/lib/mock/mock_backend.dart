@@ -203,13 +203,18 @@ class MockBackend extends StateNotifier<MockState> {
   // ---------------------------------------------------------------- 合流
   void startMeetup({required String name, required LatLng point, required List<String> memberUids, bool fromIncident = false}) {
     state = state.copyWith(
-      meetup: Meetup(id: 'mu_${DateTime.now().millisecondsSinceEpoch}', name: name, point: point, memberUids: memberUids, createdAt: DateTime.now(), fromIncident: fromIncident),
+      // サーバーは作った本人を必ずメンバーに入れる。モックだけ入れないと
+      // 「自分の合流なのにメンバーに自分がいない」という別物になる。
+      meetup: Meetup(id: 'mu_${DateTime.now().millisecondsSinceEpoch}', name: name, point: point, memberUids: {myUid, ...memberUids}.toList(), createdAt: DateTime.now(), fromIncident: fromIncident),
     );
   }
 
   void endMeetup() => state = state.copyWith(clearMeetup: true);
 
   // ---------------------------------------------------------------- メッセージ
+  /// モックでの自分。送信者の既定値として既に 'me' を使っている。
+  static const myUid = 'me';
+
   void send(String friendUid, {String? text, String? reaction, String fromUid = 'me'}) {
     final msg = ChatMessage(
       id: 'm_${DateTime.now().microsecondsSinceEpoch}',

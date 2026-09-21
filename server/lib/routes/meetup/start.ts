@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { route, body } from "../../http.js";
 import { db, COL, FieldValue } from "../../firebase.js";
-import { assertFriend, displayNameOf } from "../../social.js";
+import { assertFriend, displayNameOf, membersAfterLeave } from "../../social.js";
 import { pushToUsers } from "../../agent/store.js";
 
 const Body = z.object({
@@ -20,6 +20,10 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
   const others = b.memberUids.filter((u) => u !== ctx.uid);
   await Promise.all(others.map((u) => assertFriend(ctx.uid!, u)));
 
+  // 参加できる合流は1人につき1つに保つ。アプリは常に1件しか出せないので、
+  // 古いものを残すと新しい合流が隠れ、隠れた方は閉じる手段が無くなる。
+  await leaveAllActive(ctx.uid!);
+
   const ref = db().collection(COL.meetups).doc();
   await ref.set({
     name: b.name,
@@ -37,3 +41,15 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
   await pushToUsers(others, "ヒナミチ", `${name}さんが「${b.name}」で合流しようとしています`, { type: "meetup", meetupId: ref.id });
   return { ok: true, meetupId: ref.id };
 });
+
+/** 自分が入っている active な合流から、自分だけ抜けておく。 */
+async function leaveAllActive(uid: string) {
+  const q = await db().collection(COL.meetups).where("memberUids", "array-contains", uid).where("active", "==", true).get();
+  if (q.empty) return;
+  const batch = db().batch();
+  for (const d of q.docs) {
+    const { members, active } = membersAfterLeave(((d.data() as any)?.memberUids ?? []) as string[], uid);
+    batch.set(d.ref, { memberUids: members, active, ...(active ? {} : { endedAt: FieldValue.serverTimestamp() }) }, { merge: true });
+  }
+  await batch.commit();
+}

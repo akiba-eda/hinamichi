@@ -6,6 +6,7 @@ import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 import '../../state/providers.dart';
+import 'meetup_sheet.dart';
 import '../../domain/social.dart';
 import '../../mock/mock_backend.dart';
 import '../../ui/atoms/atoms.dart';
@@ -183,7 +184,7 @@ class _FriendDetail extends ConsumerWidget {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => ChatPage(friend: f.entry)));
             })),
             const SizedBox(width: 8),
-            Expanded(child: HinaButton.secondary('合流する', icon: Icons.handshake_outlined, onPressed: () => _meetup(context, ref, loc))),
+            Expanded(child: HinaButton.secondary('合流する', icon: Icons.handshake_outlined, onPressed: () => _openMeetup(context, ref))),
           ]),
 
           const SizedBox(height: HinaSpace.s),
@@ -205,26 +206,14 @@ class _FriendDetail extends ConsumerWidget {
     Navigator.of(context).pop();
   }
 
-  /// 相手の最後の位置を待ち合わせ場所にして合流を始める。
-  /// 災害中なら相手の避難先の方が意味があるので、そちらを優先する。
-  void _meetup(BuildContext context, WidgetRef ref, FriendLocation loc) {
-    final status = ref.read(friendStatusProvider(f.entry.uid)).value ?? f.status;
-    final point = status.shelterPoint ?? loc.point;
-    final name = status.shelterName ?? '${f.entry.displayName}のいる場所';
-    if (ref.read(mockModeProvider)) {
-      ref.read(mockBackendProvider.notifier).startMeetup(
-            name: name,
-            point: point,
-            memberUids: [f.entry.uid],
-            fromIncident: status.shelterPoint != null,
-          );
-    } else {
-      ref.read(apiProvider).startMeetup(name: name, lat: point.latitude, lng: point.longitude, memberUids: [f.entry.uid]);
-    }
-    // ホームへ送る。合流バナーと道案内が出ているのはホーム。
-    ref.read(mapFocusProvider.notifier).state = point;
-    ref.read(selectedTabProvider.notifier).state = 0;
+  /// 合流の作成シートを開く。
+  ///
+  /// 以前はここで「相手のいる場所」に決め打ちして即作成していたが、
+  /// 落ち合う場所も人数も選べず、災害時に避難所で落ち合うことが表現できなかった。
+  /// 何を決めるかはシート側に寄せて、ここは開くだけにする。
+  void _openMeetup(BuildContext context, WidgetRef ref) async {
     Navigator.of(context).pop();
+    await showMeetupSheet(context, ref, initialFriendUid: f.entry.uid);
   }
 
   static String _hhmm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';

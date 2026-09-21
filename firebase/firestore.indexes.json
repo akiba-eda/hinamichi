@@ -43,6 +43,10 @@
         {
           "fieldPath": "active",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
         }
       ]
     },

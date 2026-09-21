@@ -13,7 +13,7 @@ import '../atoms/atoms.dart';
 /// ホームと友だちタブの両方に出す。**押したら地点へ寄るのではなく、
 /// ホームに道案内が出ている前提**にしてある ── 旗だけ立てて放り出すと、
 /// 「で、どう行くの」が残る。
-class MeetupBanner extends ConsumerWidget {
+class MeetupBanner extends ConsumerStatefulWidget {
   final Meetup meetup;
 
   /// ホームでは自分が今そこにいるので、寄せ直す動きは要らない。
@@ -21,9 +21,36 @@ class MeetupBanner extends ConsumerWidget {
   const MeetupBanner({super.key, required this.meetup, this.focusOnTap = true});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MeetupBanner> createState() => _MeetupBannerState();
+}
+
+class _MeetupBannerState extends ConsumerState<MeetupBanner> {
+  bool _leaving = false;
+
+  /// 合流から抜ける。以前は Future を投げっぱなしで、403 や通信断でも
+  /// 成功したように見えていた。失敗したことは押した人に見せる。
+  Future<void> _leave() async {
+    setState(() => _leaving = true);
+    try {
+      if (ref.read(mockModeProvider)) {
+        ref.read(mockBackendProvider.notifier).endMeetup();
+      } else {
+        await ref.read(apiProvider).leaveMeetup(widget.meetup.id);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('合流から抜けられませんでした: $e')));
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final meetup = widget.meetup;
+    final focusOnTap = widget.focusOnTap;
     final t = Theme.of(context).textTheme;
     final here = ref.watch(locationProvider)?.point;
+    final others = ref.watch(meetupMemberEtasProvider);
     final route = ref.watch(meetupRouteProvider).value;
     // 経路が引けたらその道のりで、駄目なら直線の目安で。
     // 避難時と同じ順序(実測 → 取れなければ直線)に揃えてある。
@@ -62,17 +89,26 @@ class MeetupBanner extends ConsumerWidget {
                     Text(meetup.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                     if (min != null)
                       Text(
-                        route != null ? '徒歩 $min分 (約${route.distanceM}m)' : '徒歩 $min分 (直線の目安)',
+                        route != null ? 'あなた 徒歩 $min分 (約${route.distanceM}m)' : 'あなた 徒歩 $min分 (直線の目安)',
                         style: t.bodySmall,
+                      ),
+                    // 位置を共有してくれている相手だけ。分からない相手は
+                    // 勝手に埋めず、行ごと出さない。
+                    if (others.isNotEmpty)
+                      Text(
+                        others.map((o) => '${o.name} 徒歩 ${o.walkMin}分').join(' / '),
+                        style: t.bodySmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ]),
                 ),
               ),
               TextButton(
-                onPressed: () => ref.read(mockModeProvider)
-                    ? ref.read(mockBackendProvider.notifier).endMeetup()
-                    : ref.read(apiProvider).endMeetup(meetup.id),
-                child: const Text('やめる'),
+                onPressed: _leaving ? null : _leave,
+                child: _leaving
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('抜ける'),
               ),
             ]),
           ),

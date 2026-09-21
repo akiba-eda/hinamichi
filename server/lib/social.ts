@@ -25,3 +25,19 @@ export async function displayNameOf(uid: string): Promise<string> {
   const d = await db().collection(COL.users).doc(uid).get();
   return ((d.data() as any)?.displayName as string) ?? "友だち";
 }
+
+/**
+ * 合流から1人が抜けたあとの姿。
+ *
+ * 「抜ける」と「解散」を分けるための判定。押した人だけが外れ、残りが
+ * 1人以下になった時点で合流そのものを閉じる ── 1人だけの合流は、
+ * 旗が出たまま誰とも落ち合えない状態になるので残す意味が無い。
+ *
+ * 呼んだ人がメンバーでない場合は何も変えない(members をそのまま返す)。
+ */
+export function membersAfterLeave(members: string[], uid: string): { members: string[]; active: boolean } {
+  const unique = Array.from(new Set(members));
+  if (!unique.includes(uid)) return { members: unique, active: unique.length > 1 };
+  const rest = unique.filter((m) => m !== uid);
+  return { members: rest, active: rest.length > 1 };
+}
