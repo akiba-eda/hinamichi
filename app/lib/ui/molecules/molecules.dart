@@ -520,15 +520,37 @@ void showRerouteToast(BuildContext context, String text) {
 }
 
 // ---------------------------------------------------------------- DisasterTypeSelector
-/// 地図に重ねるハザードを切り替えるピル(ホームとマップで共用)。
+/// 災害の種別を切り替えるピル(ホームとマップで共用)。
+///
+/// 切り替わるのは地図に重ねるハザードだけではない。**避難場所の顔ぶれそのもの**が
+/// 変わる ── 指定緊急避難場所は災害種別ごとに別々に指定されていて、同じ建物でも
+/// 「地震ならよいが津波では駄目」ということが起きる。件数を添えるのはそのため。
 class DisasterTypeSelector extends StatelessWidget {
   final DisasterType selected;
   final ValueChanged<DisasterType> onChanged;
+
+  /// 選んでいる種別で指定されている避難場所の数。null なら出さない(取得中)。
+  final int? shelterCount;
   static const types = [DisasterType.earthquake, DisasterType.flood, DisasterType.tsunami];
-  const DisasterTypeSelector({super.key, required this.selected, required this.onChanged});
+  const DisasterTypeSelector({super.key, required this.selected, required this.onChanged, this.shelterCount});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final pill = _pill(context);
+    if (shelterCount == null) return pill;
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      pill,
+      const SizedBox(height: 4),
+      // 地図の上に浮かぶので、下地を敷かないと地名に重なって読めない。
+      Container(
+        decoration: BoxDecoration(color: HinaColors.surface, borderRadius: BorderRadius.circular(10), boxShadow: HinaShadow.card),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text('${selected.label}の避難場所 $shelterCount件', style: Theme.of(context).textTheme.bodySmall),
+      ),
+    ]);
+  }
+
+  Widget _pill(BuildContext context) => Container(
         decoration: BoxDecoration(color: HinaColors.surface, borderRadius: BorderRadius.circular(22), boxShadow: HinaShadow.card),
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Row(mainAxisSize: MainAxisSize.min, children: [

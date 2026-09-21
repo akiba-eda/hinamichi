@@ -85,6 +85,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                 controller: _map,
                 center: here,
                 shelters: shelters,
+                // 合流の旗はここにも出す。近隣情報から避難所を眺めているときに
+                // 「どこで落ち合う約束だったか」が消えると、選び直しの判断ができない。
+                meetup: ref.watch(meetupProvider),
                 selected: highlighted,
                 showFlood: demo.showFlood,
                 showTsunami: demo.showTsunami,
@@ -99,6 +102,7 @@ class _MapPageState extends ConsumerState<MapPage> {
               left: HinaSpace.m,
               child: DisasterTypeSelector(
                 selected: type,
+                shelterCount: nearby.value?.shelters.length,
                 onChanged: (d) {
                   ref.read(mapDisasterTypeProvider.notifier).state = d;
                   ref.read(demoProvider.notifier).setLayers(flood: d != DisasterType.earthquake, tsunami: d == DisasterType.tsunami);
@@ -133,7 +137,15 @@ class _MapPageState extends ConsumerState<MapPage> {
                 separatorBuilder: (_, __) => const Divider(height: 1, indent: HinaSpace.m, endIndent: HinaSpace.m),
                 itemBuilder: (_, i) {
                   if (i == 0) {
-                    return SectionHeader('周辺の避難場所', trailing: Text('${d.shelters.length}件', style: Theme.of(context).textTheme.bodySmall));
+                    // 見出しに災害種別を入れる。切り替えても「周辺の避難場所」のままだと、
+                    // 件数と顔ぶれが変わったこと自体に気づけない。
+                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SectionHeader(type.shelterHeading, trailing: Text('${d.shelters.length}件', style: Theme.of(context).textTheme.bodySmall)),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s),
+                        child: Text(type.shelterNote, style: Theme.of(context).textTheme.bodySmall),
+                      ),
+                    ]);
                   }
                   return _ShelterRow(shelter: d.shelters[i - 1], onTap: _open);
                 },

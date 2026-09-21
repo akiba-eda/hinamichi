@@ -27,6 +27,8 @@ void main() {
         nearbyProvider.overrideWith((ref) async => (shelters: shelters, hazard: MockBackend.hazardHere)),
         // 位置が無いと「位置が取得できません」に差し替わる画面なので、先に入れておく。
         locationProvider.overrideWith((ref) => _FixedLocation(ref)),
+        // 合流の購読は Firestore を触るので、この画面のテストでは無効にする。
+        meetupProvider.overrideWithValue(null),
         // 近隣情報はフレンド・合流を出さない(ホームに集約した)ので上書き不要。
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
@@ -34,8 +36,12 @@ void main() {
     await tester.pump();
 
     expect(find.text('近隣情報'), findsOneWidget);
-    expect(find.text('周辺の避難場所'), findsOneWidget);
+    // 見出しに災害種別が入る。切り替えたときに、顔ぶれが変わったことが分かるように。
+    expect(find.text('地震のときに逃げる場所'), findsOneWidget);
+    expect(find.textContaining('揺れから身を守る場所'), findsOneWidget);
     expect(find.text('${shelters.length}件'), findsOneWidget);
+    // ピルの下にも件数を出す。地図だけ見ている人にも変化が伝わるように。
+    expect(find.text('地震の避難場所 ${shelters.length}件'), findsOneWidget);
     // ListView は見えている分しか組み立てないので、先頭だけ確かめる。
     // 並び順と件数そのものは下のユニットテストで押さえる。
     expect(find.text(shelters.first.name), findsOneWidget, reason: '先頭の避難所がリストに無い');
@@ -47,6 +53,8 @@ void main() {
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: <ShelterInfo>[], hazard: null)),
         locationProvider.overrideWith((ref) => _FixedLocation(ref)),
+        // 合流の購読は Firestore を触るので、この画面のテストでは無効にする。
+        meetupProvider.overrideWithValue(null),
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));
