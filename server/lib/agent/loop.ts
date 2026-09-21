@@ -12,7 +12,7 @@ import { listShelters, type DisasterType } from "../tools/shelters.js";
 import { getCrowd, adjustCrowd } from "../tools/crowd.js";
 import { getRoute } from "../tools/route.js";
 import { walkMinutes, type LatLng } from "../geo.js";
-import { abstractCandidates, assertNoCoordinates, buildCandidates } from "./abstraction.js";
+import { abstractCandidates, assertNoCoordinates, buildCandidates, deanonymise } from "./abstraction.js";
 import { DECIDE_SYSTEM, PROMPT_DECIDE, PROMPT_TRIAGE, TRIAGE_SYSTEM, decideTools, triageTools } from "./prompts.js";
 import { validateLetter } from "./validator.js";
 import { reasonsFor, ruleBasedSelect } from "./fallback.js";
@@ -210,7 +210,10 @@ export async function runAgent(input: RunInput): Promise<RunOutput> {
     s.walkMin = walkMinutes(route.distanceM);
   }
 
-  const userMessage = decision?.userMessage && validatedBy !== "fallback" ? decision.userMessage : `${s.name}へ。徒歩${s.walkMin}分。一緒に行こう`;
+  // プロンプトで禁じてはいるが、仮名が混じった文がそのまま出ると意味不明になる。
+  // 最後にここで直す。
+  const userMessage =
+    decision?.userMessage && validatedBy !== "fallback" ? deanonymise(decision.userMessage) : "今のうちに、ここへ避難しておこう";
   const shelterOut = { id: s.id, name: s.name, address: s.address, lat: s.lat, lng: s.lng, walkMin: s.walkMin, distanceM: s.distanceM, elevationM: s.elevationM };
   await finish(state, { reasons, userMessage, validatedBy, shelter: shelterOut, route, candidates: candidates.map((c) => ({ id: c.shelter.id, name: c.shelter.name, letter: c.letter, walkMin: c.shelter.walkMin, crowdPct: c.crowd.pct })) });
 

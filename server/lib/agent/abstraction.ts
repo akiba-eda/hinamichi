@@ -50,3 +50,18 @@ export function assertNoCoordinates(payload: unknown): void {
     throw new Error("data-minimisation violation: coordinate key in LLM payload");
   }
 }
+
+/**
+ * セナヴィの一言から、候補の仮名(A〜H)を「ここ」に直す。
+ *
+ * LLM が知っている呼び名は仮名しかないので、放っておくと
+ * 「今のうちにDへ避難すると安心だよ」のような文が出てくる。仮名は
+ * 座標や実名を渡さないための内部都合であって、ユーザーには意味がない。
+ *
+ * 実名に置き換えないのは、**すぐ下のカードに名前・徒歩分・理由が出ている**から。
+ * 吹き出しは促す役、カードは情報を出す役、と分けたほうが短くて読める。
+ */
+export function deanonymise(message: string): string {
+  // 英単語の一部(GPS の G など)を巻き込まないよう、前後に英字が無いものだけ。
+  return message.replace(/(?<![A-Za-z])[A-HＡ-Ｈ](?![A-Za-z])/g, "ここ");
+}
