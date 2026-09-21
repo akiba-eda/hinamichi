@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -43,14 +45,25 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     _bootstrap();
   }
 
-  Future<void> _bootstrap() async {
-    Notifications.onOpenAlert = _handleAlert;
-    final token = await Notifications.init();
+  Future<void> _register(String? fcmToken) async {
     try {
-      await ref.read(apiProvider).register(fcmToken: token, platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android');
+      await ref.read(apiProvider).register(fcmToken: fcmToken, platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android');
     } catch (e) {
       debugPrint('register failed: $e');
     }
+  }
+
+  Future<void> _bootstrap() async {
+    Notifications.onOpenAlert = _handleAlert;
+
+    // 通知の初期化を待たない。iOS シミュレータ(APNs なし)では
+    // FirebaseMessaging.getInitialMessage() が返らないことがあり、以前はここで
+    // 起動処理ごと止まって、招待コードの払い出しもアラートの購読も動いていなかった。
+    // 先に登録だけ済ませ、トークンは取れた時点で追記する(登録は upsert)。
+    await _register(null);
+    unawaited(Notifications.init().then((t) {
+      if (t != null) _register(t);
+    }));
     // Mirror new alerts from Firestore (works without push, e.g. iOS without APNs).
     final uid = FirebaseAuth.instance.currentUser?.uid;
     FirebaseFirestore.instance.collection('alerts').orderBy('createdAt', descending: true).limit(1).snapshots().listen((q) {
