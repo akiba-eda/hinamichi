@@ -10,7 +10,7 @@
  */
 import { PNG } from "pngjs";
 import { tileXY, type LatLng } from "../geo.js";
-import { getAreaCode } from "./areaCode.js";
+import { getAreaCode, getPlaceName } from "./areaCode.js";
 
 /** hrpns タイルはこれ以上拡大できない(z11 以上は空タイルが返る)。 */
 const ZOOM = 10;
@@ -175,6 +175,55 @@ async function cloudPct(p: LatLng): Promise<number | null> {
     if (code === "200") return 90; // くもり
     if (code.startsWith("2")) return 80;
     return 100; // 雨・雪
+  } catch {
+    return null;
+  }
+}
+
+/** 今日・明日の見通し。レーダーの60分では答えられない問いのために引く。 */
+export type Outlook = {
+  areaName: string;
+  today?: { text: string; pops: Array<{ from: string; pct: number }> };
+  tomorrow?: { text: string };
+};
+
+/**
+ * 府県予報から、今日と明日の天気文と降水確率を取る。
+ *
+ * ナウキャストは 0〜60 分しか見ていないので、「今日は雨？」に答えられない。
+ * 答えられない問いに答えさせないために、答えられる材料の方を足す。
+ */
+export async function getOutlook(p: LatLng): Promise<Outlook | null> {
+  try {
+    const area = await getAreaCode(p);
+    const fa = await forecastArea(area.muniCd);
+    const inPref = Object.keys((await areas())?.offices ?? {}).filter((k) => k.startsWith(area.prefCd));
+    const j = await fetchForecast([...(fa ? [fa.office] : []), area.prefCd + "0000", ...inPref]);
+    const series: any[] = j?.[0]?.timeSeries ?? [];
+    const weather = series[0];
+    const pop = series[1];
+    const pick = (s: any) => (s?.areas ?? []).find((x: any) => x?.area?.code === fa?.class10) ?? s?.areas?.[0];
+    const wa = pick(weather);
+    const pa = pick(pop);
+    if (!wa) return null;
+
+    const times: string[] = weather?.timeDefines ?? [];
+    const texts: string[] = wa?.weathers ?? [];
+    // 降水確率は6時間ごと。今日ぶんだけ拾う。
+    const popTimes: string[] = pop?.timeDefines ?? [];
+    const pops: string[] = pa?.pops ?? [];
+    const today = new Date().toISOString().slice(0, 10);
+    const todayPops = popTimes
+      .map((t, i) => ({ from: t, pct: Number(pops[i] ?? -1) }))
+      .filter((x) => x.pct >= 0 && x.from.slice(0, 10) === today)
+      .map((x) => ({ from: x.from.slice(11, 16), pct: x.pct }));
+
+    return {
+      areaName: (await getPlaceName(p)) ?? area.name,
+      ...(texts[0] ? { today: { text: texts[0].replace(/[\s\u3000]+/g, ""), pops: todayPops } } : {}),
+      ...(texts[1] ? { tomorrow: { text: texts[1].replace(/[\s\u3000]+/g, "") } } : {}),
+      ...(times.length ? {} : {}),
+    };
   } catch {
     return null;
   }

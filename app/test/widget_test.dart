@@ -31,7 +31,8 @@ void main() {
   test('rain nowcast → outlook and line', () {
     const clear = RainNowcast(nowMmh: 0, maxMmh: 0, cloudPct: 8);
     expect(clear.outlook, RainOutlook.clear);
-    expect(weatherLine(clear), contains('晴れ'));
+    // 快晴のときは空の話をする(雨の保証は1時間、空模様は府県予報由来で断定しない)
+    expect(weatherLine(clear), contains('空'));
 
     const soon = RainNowcast(nowMmh: 0, maxMmh: 3.4, startsInMin: 25);
     expect(soon.outlook, RainOutlook.rainSoon);

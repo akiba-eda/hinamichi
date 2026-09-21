@@ -58,6 +58,12 @@ class ApiClient {
   Future<Map<String, dynamic>> myArea({required double lat, required double lng}) =>
       post('/api/me/area', {'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 15));
 
+  /// セナヴィに聞く。答えられる材料は直近60分のレーダーと今日・明日の予報、
+  /// それと現在地のハザードだけ。**座標は LLM に渡らない**(サーバーが地名と
+  /// 天気に変換してから渡す)。
+  Future<Map<String, dynamic>> ask({required String question, required double lat, required double lng}) =>
+      post('/api/senavi/ask', {'question': question, 'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 25));
+
   Future<Map<String, dynamic>> nearby({required double lat, required double lng, String type = 'earthquake'}) =>
       post('/api/shelters/nearby', {'lat': lat, 'lng': lng, 'type': type}, timeout: const Duration(seconds: 30));
 

@@ -13,6 +13,7 @@ import '../../domain/weather.dart';
 import '../../domain/social.dart';
 import '../../state/providers.dart';
 import '../sos/sos_sheet.dart';
+import 'ask_sheet.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../../ui/organisms/hina_map.dart';
@@ -301,7 +302,20 @@ class _HomePageState extends ConsumerState<HomePage> {
       final hz = nearby.value?.hazard;
       final hazardSub = hz == null ? '現在地周辺の避難場所とハザードを表示しています' : 'この場所: 浸水 ${hz.floodLabel}${hz.landslide ? ' / 土砂警戒' : ''}${hz.tsunami > 0 ? ' / 津波想定' : ''}';
       final sub = weatherSub(ref.watch(weatherProvider).value) ?? hazardSub;
-      body = HinaCard(child: SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: sub));
+      // 吹き出しから聞けるようにする。何を聞けるかは開いた先で例を出す
+      // ── 入口が無いと、聞けること自体に気づかれない。
+      body = HinaCard(
+        onTap: () => showAskSheet(context),
+        child: Column(children: [
+          SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: sub),
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.chat_bubble_outline, size: 14, color: HinaColors.inkSub),
+            const SizedBox(width: 6),
+            Text('セナヴィに聞く', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: HinaColors.inkSub)),
+          ]),
+        ]),
+      );
     }
     return SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s), child: body));
   }

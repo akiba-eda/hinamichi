@@ -12,7 +12,7 @@ void main() {
     test('取れなかったときに天気を断定しない', () {
       final line = weatherLine(null);
       expect(line, isNot(contains('おだやか')));
-      expect(line, contains('確認中'));
+      expect(line, isNot(contains('降')), reason: '見ていないのに雨の話をしている: $line');
     });
 
     test('雨が無いときは「1時間」と範囲を言う', () {
@@ -37,8 +37,9 @@ void main() {
 
     test('止む時刻が読めないときは「1時間は続きそう」と言う', () {
       // 60分以内に止まないので stopsInMin は null。黙るより、続くと言う方が役に立つ。
-      expect(weatherLine(w(now: 3, max: 5)), contains('1時間は雨が続きそう'));
-      expect(weatherLine(w(now: 15, max: 20)), contains('1時間は強い雨が続きそう'));
+      // 文言そのものではなく「続くと言っている」ことを見る。口調は変わりうる。
+      expect(weatherLine(w(now: 3, max: 5)), contains('続き'));
+      expect(weatherLine(w(now: 15, max: 20)), allOf(contains('強い雨'), contains('続く')));
     });
 
     test('あいさつで文字数を使わない', () {
@@ -47,6 +48,13 @@ void main() {
         expect(n, isNot(contains('気をつけて')), reason: n);
         expect(n.length, lessThanOrEqualTo(20), reason: '長い: $n');
       }
+    });
+
+    // かわいさで実用情報を潰さない。傘を持つかの判断材料は残す。
+    test('雨のときは強さと時間の情報が残っている', () {
+      expect(weatherLine(w(max: 3, starts: 5)), contains('5分'));
+      expect(weatherLine(w(max: 18, starts: 10)), allOf(contains('10分'), contains('強い雨')));
+      expect(weatherLine(w(now: 15, max: 20)), contains('強い雨'));
     });
   });
 }
