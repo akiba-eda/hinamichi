@@ -2,7 +2,7 @@
 import { db, COL, FieldValue } from "./firebase.js";
 import { fetchRecentQuakes } from "./sources/p2pquake.js";
 import { fetchWarningDoc, fetchWarningFeed, type Warning } from "./sources/jma.js";
-import { pushToTopic, pushToUsers } from "./agent/store.js";
+import { pushToTopics, pushToUsers } from "./agent/store.js";
 import { offsetM } from "./geo.js";
 import { getAreaCode } from "./tools/areaCode.js";
 import type { AlertDoc, DisasterType } from "./agent/types.js";
@@ -19,9 +19,19 @@ export async function createAlert(a: Omit<AlertDoc, "id"> & { id?: string }): Pr
 
 const alertData = (a: AlertDoc) => ({ type: "alert", alertId: a.id, alertType: a.type, title: a.title, source: a.source });
 
-/** Real alert → everyone (topic "all"). Users decide relevance via the agent. */
+/** 市区町村コード(class20) → その土地の端末が購読しているトピック名。 */
+export const areaTopic = (class20: string) => `area_${class20}`;
+
+/**
+ * 実データのアラートを配る。
+ *
+ * 対象市区町村が分かっているもの(気象警報)は**その土地のトピックにだけ**送る。
+ * 関東の大雨で北海道の端末が鳴ると、肝心なときに通知を切られてしまう。
+ * 地震のように対象が全国のものは従来どおり全体へ。
+ */
 export async function broadcastAlert(a: AlertDoc) {
-  await pushToTopic(TOPIC_ALL, `⚠️ ${a.title}`, "セナヴィがあなたへの影響を確認します。タップして開いてください", alertData(a));
+  const topics = a.areaCodes.length ? a.areaCodes.map(areaTopic) : [TOPIC_ALL];
+  await pushToTopics(topics, `⚠️ ${a.title}`, "セナヴィがあなたへの影響を確認します。タップして開いてください", alertData(a));
 }
 
 /** Demo alert → only the requesting user's devices. */

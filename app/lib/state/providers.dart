@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
+import '../core/my_area.dart';
 import '../core/location_service.dart';
 import '../core/location_uploader.dart';
 import '../core/pending_locations.dart';
@@ -18,6 +19,9 @@ import '../mock/mock_backend.dart';
 import '../ui/organisms/hina_basemap.dart';
 
 final apiProvider = Provider((_) => ApiClient());
+
+/// いま自分がいる市区町村。警報を自分宛てに絞るためだけに使う。
+final myAreaProvider = Provider((ref) => MyArea(ref.watch(apiProvider)));
 final firestoreProvider = Provider((_) => FirebaseFirestore.instance);
 
 /// Anonymous auth user (signed in at startup).

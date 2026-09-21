@@ -64,6 +64,15 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     unawaited(Notifications.init().then((t) {
       if (t != null) _register(t);
     }));
+    // 自分の市区町村を把握して、その土地のトピックを購読する。
+    // 座標はサーバーに預けず、コードだけを端末が持つ。
+    final area = ref.read(myAreaProvider);
+    await area.load();
+    unawaited(ref.read(locationProvider.notifier).refresh().then((l) => area.update(l.point)).catchError((Object e) {
+      debugPrint('area update failed: $e');
+      return null;
+    }));
+
     // Mirror new alerts from Firestore (works without push, e.g. iOS without APNs).
     final uid = FirebaseAuth.instance.currentUser?.uid;
     FirebaseFirestore.instance.collection('alerts').orderBy('createdAt', descending: true).limit(1).snapshots().listen((q) {
@@ -74,6 +83,10 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
       if (created == null || DateTime.now().difference(created) > const Duration(minutes: 5)) return;
       final target = data['demoTargetUid'] as String?;
       if (target != null && target != uid) return;
+      // その土地に出ていない警報では動かさない。関東の大雨で北海道の端末が
+      // 鳴ると、肝心なときに通知を切られてしまう。対象が空なら全国向け(地震)。
+      final codes = ((data['areaCodes'] as List?) ?? const []).map((e) => e.toString()).toList();
+      if (target == null && !area.matches(codes)) return;
       if (_seenAlerts.add(d.id)) {
         Notifications.showLocalAlert(d.id, (data['title'] ?? '災害情報') as String);
         _handleAlert(d.id);

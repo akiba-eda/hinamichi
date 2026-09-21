@@ -53,6 +53,11 @@ class ApiClient {
   Future<Map<String, dynamic>> weather({required double lat, required double lng}) =>
       post('/api/weather/nowcast', {'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 15));
 
+  /// 自分がいまどの市区町村にいるかだけを引く。サーバーは何も保存しない。
+  /// 警報を自分宛てに絞るための市区町村コードを得るのが目的。
+  Future<Map<String, dynamic>> myArea({required double lat, required double lng}) =>
+      post('/api/me/area', {'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 15));
+
   Future<Map<String, dynamic>> nearby({required double lat, required double lng, String type = 'earthquake'}) =>
       post('/api/shelters/nearby', {'lat': lat, 'lng': lng, 'type': type}, timeout: const Duration(seconds: 30));
 

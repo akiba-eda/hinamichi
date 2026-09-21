@@ -55,6 +55,25 @@ class Notifications {
     return token;
   }
 
+  /// 自分の市区町村のトピックを購読する。警報はこのトピックへ配られるので、
+  /// その土地に出たときだけ鳴る。APNs が無い端末では失敗するが、Firestore の
+  /// 購読で拾えるので致命傷にはしない。
+  static Future<void> subscribeArea(String class20) async {
+    try {
+      await FirebaseMessaging.instance.subscribeToTopic('area_$class20');
+    } catch (e) {
+      debugPrint('subscribeArea failed: $e');
+    }
+  }
+
+  static Future<void> unsubscribeArea(String class20) async {
+    try {
+      await FirebaseMessaging.instance.unsubscribeFromTopic('area_$class20');
+    } catch (e) {
+      debugPrint('unsubscribeArea failed: $e');
+    }
+  }
+
   /// iOS without APNs, or any device: mirror a Firestore alert as a local notification.
   static Future<void> showLocalAlert(String alertId, String title) => _local.show(alertId.hashCode, '⚠️ $title', 'セナヴィがあなたへの影響を確認します',
       const NotificationDetails(android: AndroidNotificationDetails('hinamichi_alerts', '災害アラート', importance: Importance.max, priority: Priority.high), iOS: DarwinNotificationDetails()),

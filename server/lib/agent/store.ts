@@ -103,14 +103,30 @@ export async function pushToUsers(uids: string[], title: string, body: string, d
 }
 
 export async function pushToTopic(topic: string, title: string, body: string, data: Record<string, string> = {}) {
+  return pushToTopics([topic], title, body, data);
+}
+
+/**
+ * 複数のトピックへまとめて送る。
+ *
+ * 警報は市区町村ごとにトピックを分けて配る ── 端末が自分の市区町村の
+ * トピックを購読する形にすれば、**サーバーは誰がどこにいるかを知らずに**
+ * その土地の人にだけ鳴らせる。位置をサーバーに置かずに済ませるための作り。
+ */
+export async function pushToTopics(topics: string[], title: string, body: string, data: Record<string, string> = {}) {
+  const list = Array.from(new Set(topics)).slice(0, 400); // FCM の一括送信上限(500)の内側
+  if (!list.length) return;
   try {
-    await fcm().send({
-      topic,
-      notification: { title, body },
-      data,
-      android: { priority: "high", notification: { channelId: "hinamichi_alerts", sound: "default" } },
-      apns: { payload: { aps: { sound: "default", "content-available": 1 } } },
-    });
+    const res = await fcm().sendEach(
+      list.map((topic) => ({
+        topic,
+        notification: { title, body },
+        data,
+        android: { priority: "high" as const, notification: { channelId: "hinamichi_alerts", sound: "default" } },
+        apns: { payload: { aps: { sound: "default", "content-available": 1 } } },
+      })),
+    );
+    if (res.failureCount) console.warn(`[fcm] ${res.failureCount}/${list.length} topic sends failed`);
   } catch (e) {
     console.warn("[fcm] topic send failed", e);
   }

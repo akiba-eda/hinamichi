@@ -12,6 +12,7 @@ import demoReset from "../lib/routes/demo/reset.js";
 import friendsAccept from "../lib/routes/friends/accept.js";
 import friendsMessage from "../lib/routes/friends/message.js";
 import friendsShare from "../lib/routes/friends/share.js";
+import meArea from "../lib/routes/me/area.js";
 import meLocation from "../lib/routes/me/location.js";
 import meRegister from "../lib/routes/me/register.js";
 import meStatus from "../lib/routes/me/status.js";
@@ -44,6 +45,7 @@ const routes: Record<string, Handler> = {
   "friends/accept": friendsAccept,
   "friends/message": friendsMessage,
   "friends/share": friendsShare,
+  "me/area": meArea,
   "me/location": meLocation,
   "me/register": meRegister,
   "me/status": meStatus,
