@@ -15,6 +15,7 @@ import friendsShare from "../lib/routes/friends/share.js";
 import meRegister from "../lib/routes/me/register.js";
 import sheltersNearby from "../lib/routes/shelters/nearby.js";
 import watchDisasters from "../lib/routes/watch/disasters.js";
+import weatherNowcast from "../lib/routes/weather/nowcast.js";
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown | Promise<unknown>;
 
@@ -44,6 +45,7 @@ const routes: Record<string, Handler> = {
   "me/register": meRegister,
   "shelters/nearby": sheltersNearby,
   "watch/disasters": watchDisasters,
+  "weather/nowcast": weatherNowcast,
 };
 
 /** `/api/agent/run?x=1` → `agent/run`。

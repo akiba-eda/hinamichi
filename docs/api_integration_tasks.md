@@ -50,7 +50,7 @@ providers.dart と AgentController だけに閉じている。**
 | C-1 | `POST /api/shelters/nearby` — 指定緊急避難場所データから半径内を返す | ホーム / マップ | 地図に避難所ピンが出る。マップタブのリストが件数付きで埋まる |
 | C-2 | サーバー側のハザード判定（ハザードマップポータルの z16 タイルを `pngjs` で読む） | ホーム下部のセナヴィ一言 | 「この場所: 浸水 0.5〜3m」のような実測値が出る |
 | C-3 | 標高取得（国土地理院 標高API） | 避難所詳細・マップのタグ | 標高タグが実値になる |
-| C-4 | `POST /api/weather/nowcast` — 直近60分の雨雲ナウキャスト | ホーム（平時のセナヴィの一言） | 「あと25分くらいで雨が降りそう」等が実データで出る |
+| C-4 | ~~`POST /api/weather/nowcast` — 直近60分の雨雲ナウキャスト~~ **済** | ホーム（平時のセナヴィの一言） | 気象庁 高解像度降水ナウキャストのタイルを読んで実装。`cloudPct` は府県予報の天気コードから |
 
 ### C-4 の提供元
 
@@ -64,7 +64,7 @@ providers.dart と AgentController だけに閉じている。**
 
 | 提供元 | 登録 | 元データ | 取れるもの | 実装コスト |
 |---|---|---|---|---|
-| **気象庁 ナウキャスト**（推奨） | 不要 | **レーダー実観測** | 降水強度の**タイル(PNG)**。点の値はピクセルから読む | 中。ただし**ハザード判定 C-2 で同じ処理を書く**ので流用できる |
+| **気象庁 ナウキャスト**（← 採用） | 不要 | **レーダー実観測** | 降水強度の**タイル(PNG)**。点の値はピクセルから読む | 中。ただし**ハザード判定 C-2 で同じ処理を書く**ので流用できる |
 | Yahoo! 気象情報API (YOLP) | Client ID（無料・要登録） | 同上（気象庁レーダー由来） | 60分先までの降水強度を10分刻み、**JSON で点の値** | 小。タイル読みが要らない |
 | Open-Meteo | 不要 | 数値予報モデル | `minutely_15.precipitation` / `cloud_cover` | 小。ただし**この時間帯の精度では上2つに劣る** |
 
@@ -75,6 +75,15 @@ providers.dart と AgentController だけに閉じている。**
 「空がどうか」を一言添えるには十分。
 
 > 解像度の具体値（250m / 30 分先まで）は気象庁のページで裏を取ってから資料に書くこと。
+
+**実装後に分かったこと**（`server/lib/tools/weather.ts`）:
+- `hrpns` タイルは **z=10 が上限**。z11 以上は 334 バイトの空タイルが 200 で返るので、ズームを上げても細かくならない
+- 時刻は `targetTimes_N1.json`（実況・新しい順）と `targetTimes_N2.json`（予測・5分刻みで +60 分まで）の 2 本
+- `cloudPct` 用の区域解決は素直にいかない。**市区町村コード + "00" では引けない場合が3通りある**
+  - 政令市の区（札幌市中央区 `01101`）は区域表に無く、市（`0110000`）で載っている
+  - 松本市のように山間部が別枠で細分され、`2020201` / `2020202` に割れている
+  - 奄美（`460040`）は office なのに予報 JSON が無く、鹿児島（`460100`）の JSON に含まれる
+  → 3 通りのキーを試し、それでも駄目なら県内の office を順に当たる。全部外したら `cloudPct` は null（「雨は降らなさそう」までは言える）
 
 > タイルのオーバーレイ表示自体はアプリ側で完結しており（`hina_map.dart`）、サーバー不要。
 > C-2 は「現在地がどの浸水深クラスか」の判定だけ。
@@ -102,13 +111,13 @@ LLM 側のデータ最小化（§6.3・審査基準①）は**そのまま**。�
 
 | # | タスク | 繋がる画面 | 完了条件 |
 |---|---|---|---|
-| E'-1 | `POST /api/me/location` — 位置を受けて `locations/{uid}` に upsert | 友だち詳細 | **`at` が新しい方だけ採用**（圏外の溜め込みがまとめて届くので、到着順で上書きしない） |
-| E'-2 | 逆ジオで `areaName` を付与（国土地理院 逆ジオコーダ、キー不要） | 友だち詳細「最後にいた場所」 | 「千葉県市川市」が出る。アプリは座標を読ませない |
-| E'-3 | `POST /api/friends/share` に `shareLocation` を追加 | 友だち詳細のトグル | `friends/{uid}/list/{friendUid}.shareLocation` が変わり、ルールで read 可否が切り替わる |
-| E'-4 | `friends/{uid}/list` に相手の `displayName` / `avatarImage` / `avatarMood` を写す | 友だち一覧のアイコン | 一覧に相手のアイコンが出る |
-| E'-5 | `POST /api/me/status` — メモ更新 | プロフィール → メモ | `statuses/{uid}.note` が変わり、相手の詳細に出る |
-| E'-6 | `POST /api/me/register` に `avatarImage` / `avatarMood` を追加 | プロフィール → アイコン | 256px の base64 を `users/{uid}` に保存（Storage は使わない） |
-| E'-7 | `statuses/{uid}` に `shelterLat` / `shelterLng` を追加 | 友だち詳細「向かっている避難場所」 | 「地図で見る」でその地点に寄れる |
+| E'-1 | ~~`POST /api/me/location` — 位置を受けて `locations/{uid}` に upsert~~ **済** | 友だち詳細 | `locations/{uid}` に upsert。`at` が古ければ捨てる（`applied:false` を返す） |
+| E'-2 | ~~逆ジオで `areaName` を付与（国土地理院 逆ジオコーダ、キー不要）~~ **済** | 友だち詳細「最後にいた場所」 | 地理院の市区町村表（`maps.gsi.go.jp/js/muni.js`）で「東京都足立区」まで。逆ジオの `lv01Nm` は町丁目まで細かいので使わない |
+| E'-3 | ~~`POST /api/friends/share` に `shareLocation` を追加~~ **済** | 友だち詳細のトグル | `autoShare` と `shareLocation` を個別に更新。渡した方だけ書く |
+| E'-4 | ~~`friends/{uid}/list` に相手の `displayName` / `avatarImage` / `avatarMood` を写す~~ **済** | 友だち一覧のアイコン | `lib/profile.ts` の `fanOutProfile`。register でプロフィールが変わったら配り直す |
+| E'-5 | ~~`POST /api/me/status` — メモ更新~~ **済** | プロフィール → メモ | `statuses/{uid}.note`。**エージェントは note を書かなくなった**（セナヴィの案内文で本人のメモが消えていた） |
+| E'-6 | ~~`POST /api/me/register` に `avatarImage` / `avatarMood` を追加~~ **済** | プロフィール → アイコン | `users/{uid}.avatarImage` / `avatarMood`。画像と表情はどちらか一方だけ持つ |
+| E'-7 | ~~`statuses/{uid}` に `shelterLat` / `shelterLng` を追加~~ **済** | 友だち詳細「向かっている避難場所」 | `publishStatus` が `shelterLat` / `shelterLng` も書く。`shareShelterName` が false なら名前ごと出さない |
 
 アプリ側は実装済み（`lib/core/location_uploader.dart` / `pending_locations.dart`）:
 - 50m 動いたときだけ送る（一定間隔のポーリングはしない＝電池を削らない）
