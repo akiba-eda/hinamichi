@@ -40,6 +40,37 @@ SenaviMood moodForWeather(RainNowcast? w) => switch (w?.outlook) {
       RainOutlook.strongRainNow => SenaviMood.troubled,
     };
 
+/// 避難先を案内する前に伝える「まず身の安全」。
+///
+/// 震度6弱で揺れている最中に外へ出るのは危険で、正しい順序は
+/// 身の安全 → 一時避難 → 指定避難場所。避難先だけを出していた当初の実装は
+/// この順序を飛ばしていた。
+///
+/// 文面はセナヴィの話し方に寄せる。命令形を並べると指示装置になってしまい、
+/// 「そばにいるナビゲーター」というこのアプリの立て方から外れる。
+({String line, String sub, SenaviMood mood})? immediateSafetyFor({
+  required bool tsunami,
+  required bool strongShaking,
+  required String? intensityLabel,
+}) {
+  // 津波は揺れより優先。高さだけが効く。
+  if (tsunami) {
+    return (
+      line: '津波のおそれがあるみたい。高いところへ、一緒に行こう',
+      sub: '海や川からは離れてね。戻らないで',
+      mood: SenaviMood.serious,
+    );
+  }
+  if (strongShaking) {
+    return (
+      line: '大きな揺れだね。まずは頭を守って、収まるまで待とう',
+      sub: intensityLabel == null ? '倒れてきそうなものから離れてね' : '最大震度$intensityLabel。倒れてきそうなものから離れてね',
+      mood: SenaviMood.serious,
+    );
+  }
+  return null;
+}
+
 String lineFor(IncidentState s, {String? shelter, int? walkMin, String? weather, String? custom}) {
   if (custom != null && custom.isNotEmpty && (s == IncidentState.proposing || s == IncidentState.guiding || s == IncidentState.monitoringStay)) return custom;
   return switch (s) {

@@ -162,7 +162,23 @@ class Incident {
   final String locationSource;
   final DateTime? createdAt;
 
-  const Incident({required this.id, required this.state, required this.alertTitle, required this.type, this.shelter, this.route, required this.reasons, required this.userMessage, required this.validatedBy, required this.costUsd, required this.llmCalls, this.remainingMin, required this.locationSource, this.createdAt});
+  /// 最大震度(気象庁階級の数値と表記)。地震以外では null。
+  final int? intensity;
+  final String? intensityLabel;
+
+  /// 発表中の警報名(「津波警報」「大雨特別警報」など)。
+  final List<String> warnings;
+
+  const Incident({required this.id, required this.state, required this.alertTitle, required this.type, this.shelter, this.route, required this.reasons, required this.userMessage, required this.validatedBy, required this.costUsd, required this.llmCalls, this.remainingMin, required this.locationSource, this.createdAt, this.intensity, this.intensityLabel, this.warnings = const []});
+
+  /// 津波警報・注意報が出ているか。避難先を出す前に高い場所を促す条件。
+  bool get hasTsunamiWarning => type == DisasterType.tsunami || warnings.any((w) => w.contains('津波'));
+
+  /// 家具の転倒や落下物が起きる強さ。気象庁の震度5強以上を境にしている。
+  bool get isStrongShaking => type == DisasterType.earthquake && (intensity ?? 0) >= 5;
+
+  /// 避難先を案内する前に、まず身の安全を伝えるべき状況か。
+  bool get needsImmediateSafety => hasTsunamiWarning || isStrongShaking;
 
   factory Incident.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
     final j = d.data() ?? {};
@@ -181,6 +197,9 @@ class Incident {
       remainingMin: (j['remainingMin'] as num?)?.toInt(),
       locationSource: (j['locationSource'] ?? 'gps') as String,
       createdAt: DateTime.tryParse((j['createdAt'] ?? '') as String),
+      intensity: (j['intensity'] as num?)?.toInt(),
+      intensityLabel: j['intensityLabel'] as String?,
+      warnings: ((j['warnings'] as List?) ?? const []).map((e) => e.toString()).toList(),
     );
   }
 }

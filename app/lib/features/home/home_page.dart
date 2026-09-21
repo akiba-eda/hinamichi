@@ -167,7 +167,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ]),
               ),
               if (inc != null && (inc.state == IncidentState.proposing || inc.state.isGuiding || state == IncidentState.assessing))
-                Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 0), child: AlertBanner(title: inc.alertTitle.isEmpty ? '災害情報を確認中' : inc.alertTitle, subtitle: inc.state == IncidentState.proposing ? '避難が必要です' : (inc.state.isGuiding ? '避難中' : null))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: AlertBanner(
+                    title: inc.alertTitle.isEmpty ? '災害情報を確認中' : inc.alertTitle,
+                    // 強い揺れ・津波のあいだは、この帯にも身の安全を出す。
+                    subtitle: inc.needsImmediateSafety && !inc.state.isGuiding
+                        ? (inc.hasTsunamiWarning ? '海や川から離れ、高い場所へ移動してください' : '頭を守り、揺れが収まるまで動かないでください')
+                        : (inc.state == IncidentState.proposing ? '避難が必要です' : (inc.state.isGuiding ? '避難中' : null)),
+                  ),
+                ),
             ]),
           ),
         ),
@@ -182,8 +191,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final ctrl = ref.read(agentControllerProvider);
     Widget body;
     if (state == IncidentState.assessing) {
+      // 揺れている最中や津波警報下では、避難先を探していることより
+      // 「まず身の安全」を先に伝える。行動の順序が逆になると危ない。
+      final safety = inc == null
+          ? null
+          : immediateSafetyFor(tsunami: inc.hasTsunamiWarning, strongShaking: inc.isStrongShaking, intensityLabel: inc.intensityLabel);
       body = HinaCard(child: Column(children: [
-        SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: '災害情報・現在地のハザード・避難場所を照らし合わせています'),
+        SenaviSpeech(
+          mood: safety?.mood ?? senavi.mood,
+          text: safety?.line ?? senavi.line,
+          sub: safety?.sub ?? '災害情報・現在地のハザード・避難場所を照らし合わせています',
+        ),
         const SizedBox(height: 12),
         const LinearProgressIndicator(minHeight: 4, color: HinaColors.sky, backgroundColor: HinaColors.line),
       ]));

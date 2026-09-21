@@ -63,6 +63,32 @@ void main() {
     expect(IncidentState.arrived.isActive, isTrue);
   });
 
+  // 避難先を出す前に「まず身の安全」を伝えるかどうかの判定。
+  // 揺れている最中に外へ出るのは危険で、順序を間違えると人が死ぬ。
+  test('強い揺れ・津波では身の安全を先に伝える', () {
+    Incident inc({DisasterType type = DisasterType.earthquake, int? intensity, List<String> warnings = const []}) => Incident(
+          id: 'x', state: IncidentState.assessing, alertTitle: '', type: type,
+          reasons: const [], userMessage: '', validatedBy: 'none', costUsd: 0, llmCalls: 0,
+          locationSource: 'gps', intensity: intensity, warnings: warnings,
+        );
+
+    expect(inc(intensity: 6).isStrongShaking, isTrue);
+    expect(inc(intensity: 4).isStrongShaking, isFalse, reason: '震度4では避難先の案内でよい');
+    expect(inc(type: DisasterType.tsunami).hasTsunamiWarning, isTrue);
+    expect(inc(warnings: const ['津波警報']).hasTsunamiWarning, isTrue);
+    expect(inc(type: DisasterType.heavyRain, intensity: 6).isStrongShaking, isFalse, reason: '震度は地震のときだけ');
+
+    // 津波は揺れより優先。高さの話になる
+    final t = immediateSafetyFor(tsunami: true, strongShaking: true, intensityLabel: '6弱');
+    expect(t!.line, contains('高いところ'));
+
+    final q = immediateSafetyFor(tsunami: false, strongShaking: true, intensityLabel: '6弱');
+    expect(q!.sub, contains('6弱'));
+
+    // 該当しなければ通常の案内に任せる
+    expect(immediateSafetyFor(tsunami: false, strongShaking: false, intensityLabel: null), isNull);
+  });
+
   test('IncidentState parsing', () {
     expect(IncidentState.parse('fallback_guiding'), IncidentState.fallbackGuiding);
     expect(IncidentState.parse('fallback_guiding').isGuiding, isTrue);

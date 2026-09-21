@@ -11,6 +11,7 @@ import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../agent_log/agent_log_page.dart';
 import '../gallery/gallery_page.dart';
+import 'about_page.dart';
 import 'profile_page.dart';
 import 'demo_panel.dart';
 
@@ -151,7 +152,16 @@ class SettingsPage extends ConsumerWidget {
         ListTile(leading: const Icon(Icons.cloud_outlined), title: const Text('API サーバー'), subtitle: FutureBuilder(future: AppConfig.apiBase(), builder: (_, s) => Text(s.data ?? '')), trailing: const Icon(Icons.edit_outlined), onTap: () => _editApi(context, ref)),
         ListTile(leading: const Icon(Icons.widgets_outlined), title: const Text('Widget ギャラリー'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GalleryPage()))),
         const SizedBox(height: 16),
-        Center(child: Text('ヒナミチ v0.1 — 地理院タイル / ハザードマップポータルサイト / 指定緊急避難場所データ(国土地理院) / P2P地震情報 / 気象庁', textAlign: TextAlign.center, style: t.bodySmall)),
+        // 画面ごとに注釈を散らすと説明文だらけになるので、断り書きはここへ集約する。
+        ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: const Text('データについて'),
+          subtitle: Text('混雑・ハザード・AIに渡す情報の出所', style: t.bodySmall),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutPage())),
+        ),
+        const SizedBox(height: 8),
+        Center(child: Text('ヒナミチ v0.1', style: t.bodySmall)),
       ]),
     );
   }

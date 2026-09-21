@@ -99,19 +99,27 @@ class ReasonChips extends StatelessWidget {
       );
 }
 
+/// 混雑バー。
+///
+/// この数字は**ヒナミチでその避難場所に向かっている人の割合**で、実際の
+/// 避難所の収容状況ではない(自治体の開設情報との連携は Phase 2)。
+/// 誤解されると避難判断を誤らせるので、出所は設定の「データについて」に
+/// まとめてある。画面ごとに注釈を足すと、説明文ばかりになって本文が読まれない。
 class CrowdMeter extends StatelessWidget {
   final int pct;
   const CrowdMeter(this.pct, {super.key});
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
     final c = pct < 50 ? HinaColors.leaf : (pct < 80 ? HinaColors.sun : HinaColors.alert);
-    return Row(children: [
-      Text('混雑', style: Theme.of(context).textTheme.bodySmall),
+    final bar = Row(children: [
+      Text('混雑', style: t.bodySmall),
       const SizedBox(width: 8),
       Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: pct / 100, minHeight: 6, backgroundColor: HinaColors.line, color: c))),
       const SizedBox(width: 8),
-      Text('$pct%', style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HinaColors.ink)),
+      Text('$pct%', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HinaColors.ink)),
     ]);
+    return bar;
   }
 }
 
