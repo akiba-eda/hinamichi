@@ -8,10 +8,15 @@ import '../../domain/models.dart';
 import '../../mock/mock_backend.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
+import 'manual_location_sheet.dart';
 
 /// 設計書 §14.2 — fire scenarios anchored at the device's current location; simulate movement; inject LLM failure.
 class DemoPanel extends ConsumerStatefulWidget {
-  const DemoPanel({super.key});
+  /// 会場ビルド用の短い版。災害3種とフォールバック実演、そして次の人のための
+  /// リセットだけを出す。リハーサル用の道具(位置固定・満員・移動・天気・
+  /// フレンドの出し入れ)は、触る人には意味が分からないので畳む。
+  final bool kiosk;
+  const DemoPanel({super.key, this.kiosk = false});
   @override
   ConsumerState<DemoPanel> createState() => _DemoPanelState();
 }
@@ -165,6 +170,36 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
             ),
           ),
         );
+    if (widget.kiosk) {
+      return HinaCard(
+        color: const Color(0xFFFFF6D6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('いまいる場所を基準に、実際の避難所・ハザード・経路で判断します',
+              style: t.bodySmall?.copyWith(color: HinaColors.inkSub)),
+          const SizedBox(height: 6),
+          Row(children: [
+            tile('earthquake', '地震', const Color(0xFFE57373), Icons.vibration, () => _fire('earthquake')),
+            tile('heavy_rain', '豪雨', const Color(0xFF5AA8D6), Icons.water_drop_outlined, () => _fire('heavy_rain')),
+          ]),
+          Row(children: [
+            tile('tsunami', '津波', const Color(0xFF26A69A), Icons.waves, () => _fire('tsunami')),
+            tile('crowd', '避難所が満員', const Color(0xFF8E7CC3), Icons.groups, _crowdFull),
+          ]),
+          const Divider(),
+          SwitchListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('AI を落としてみる'),
+            subtitle: Text('返事が来なくても、安全ルールだけで避難先を選んで案内を続けます', style: t.bodySmall),
+            value: demo.failLlm,
+            onChanged: (v) => ref.read(demoProvider.notifier).setFailLlm(v),
+          ),
+          // 同じ端末を次の人が触るので、前の人のインシデントを残さない。
+          HinaButton.ghost('最初の状態に戻す', icon: Icons.restart_alt, onPressed: () => _run('reset', _reset)),
+          const SizedBox(height: HinaSpace.xs),
+        ]),
+      );
+    }
     return HinaCard(
       color: const Color(0xFFFFF6D6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -188,7 +223,22 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
           tile('arrive', 'お母さんが自宅に到着', const Color(0xFF8E7CC3), Icons.home_outlined, _simulateArrival),
         ]),
         const Divider(),
-        SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('位置を南行徳に固定(リハーサル用)'), value: demo.overrideLocation, onChanged: (v) => ref.read(demoProvider.notifier).setOverride(v)),
+        // リハーサル用の地点指定。既定値は持たず、住所で入れてもらう。
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.place_outlined),
+          title: Text(demo.manualLabel == null ? '現在地を指定する(リハーサル用)' : demo.manualLabel!),
+          subtitle: Text(demo.manualLabel == null ? '指定すると、GPS が取れても常にその地点を使います' : 'GPS より優先しています', style: t.bodySmall),
+          trailing: demo.manualLabel == null
+              ? const Icon(Icons.chevron_right)
+              : IconButton(icon: const Icon(Icons.close), tooltip: '実GPS に戻す', onPressed: () => ref.read(demoProvider.notifier).clearManualLocation()),
+          onTap: () async {
+            if (await showManualLocationSheet(context, ref, force: true)) {
+              await ref.read(demoProvider.notifier).syncManualLabel();
+            }
+          },
+        ),
         SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('LLM 障害を注入(フォールバック実演)'), value: demo.failLlm, onChanged: (v) => ref.read(demoProvider.notifier).setFailLlm(v)),
         const Divider(),
         Text('フレンド(モック)', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: HinaColors.ink)),

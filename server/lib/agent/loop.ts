@@ -378,7 +378,7 @@ export function disasterLabel(t: DisasterType) {
   return { earthquake: "地震", heavy_rain: "大雨", flood: "洪水", tsunami: "津波", landslide: "土砂災害", storm_surge: "高潮" }[t];
 }
 function labelSource(s: LocationSource) {
-  return { gps: "実GPS", cached: "直近の取得値(10分以内)", override: "デモ用の固定地点" }[s];
+  return { gps: "実GPS", cached: "直近の取得値(10分以内)", manual: "本人が入力した現在地" }[s];
 }
 async function displayNameOf(uid: string): Promise<string> {
   try {

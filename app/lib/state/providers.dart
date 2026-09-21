@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/config.dart';
 
 import '../core/api_client.dart';
 import '../core/my_area.dart';
@@ -174,21 +175,33 @@ final myStatusProvider = StreamProvider<FriendStatus>((ref) {
 });
 
 // ------------------------------------------------------------------ location
-final locationProvider = StateNotifierProvider<LocationNotifier, ResolvedLocation?>((ref) => LocationNotifier());
+final locationProvider = StateNotifierProvider<LocationNotifier, ResolvedLocation?>((ref) => LocationNotifier(ref));
+
+/// 会場ビルドで位置が取れなかったことを画面に伝えるための旗。
+/// 取れていないのに地図を描くと「そこに居る」と言ったことになるので、分けて持つ。
+final locationUnavailableProvider = StateProvider<bool>((_) => false);
 
 class LocationNotifier extends StateNotifier<ResolvedLocation?> {
-  LocationNotifier() : super(null) {
-    refresh();
+  final Ref ref;
+  LocationNotifier(this.ref) : super(null) {
+    refresh().catchError((Object _) => const ResolvedLocation(LatLng(0, 0), 'none'));
   }
   Future<ResolvedLocation> refresh() async {
-    final r = await LocationService.resolve();
-    state = r;
-    return r;
+    try {
+      final r = await LocationService.resolve();
+      ref.read(locationUnavailableProvider.notifier).state = false;
+      state = r;
+      return r;
+    } on LocationUnavailable {
+      ref.read(locationUnavailableProvider.notifier).state = true;
+      state = null;
+      rethrow;
+    }
   }
   /// Demo move simulation: follow route points.
   void simulate(LatLng p) {
     LocationService.injectSimulated(p);
-    state = ResolvedLocation(p, 'override');
+    state = ResolvedLocation(p, 'manual');
   }
 }
 
@@ -446,11 +459,13 @@ final nearbyProvider = FutureProvider<({List<ShelterInfo> shelters, HazardHere? 
 
 // ------------------------------------------------------------------ demo settings
 class DemoSettings {
-  final bool enabled, overrideLocation, failLlm, showFlood, showTsunami, showLandslide;
-  const DemoSettings({this.enabled = false, this.overrideLocation = false, this.failLlm = false, this.showFlood = true, this.showTsunami = false, this.showLandslide = false});
-  DemoSettings copyWith({bool? enabled, bool? overrideLocation, bool? failLlm, bool? showFlood, bool? showTsunami, bool? showLandslide}) => DemoSettings(
+  final bool enabled, failLlm, showFlood, showTsunami, showLandslide;
+  /// リハーサルで地点を固定しているときの表示名。null なら実GPS を使う。
+  final String? manualLabel;
+  const DemoSettings({this.enabled = false, this.manualLabel, this.failLlm = false, this.showFlood = true, this.showTsunami = false, this.showLandslide = false});
+  DemoSettings copyWith({bool? enabled, String? manualLabel, bool? failLlm, bool? showFlood, bool? showTsunami, bool? showLandslide}) => DemoSettings(
         enabled: enabled ?? this.enabled,
-        overrideLocation: overrideLocation ?? this.overrideLocation,
+        manualLabel: manualLabel ?? this.manualLabel,
         failLlm: failLlm ?? this.failLlm,
         showFlood: showFlood ?? this.showFlood,
         showTsunami: showTsunami ?? this.showTsunami,
@@ -467,16 +482,37 @@ class DemoNotifier extends StateNotifier<DemoSettings> {
   }
   Future<void> _load() async {
     final sp = await SharedPreferences.getInstance();
-    state = DemoSettings(enabled: sp.getBool('demoEnabled') ?? false, overrideLocation: sp.getBool('overrideEnabled') ?? false, failLlm: sp.getBool('demoFailLlm') ?? false);
+    // 会場ビルドでは「体験する」を常に出したいので発火を有効のままにする。
+    // 位置は会場の実際の場所を拾わせたいので、固定指定は解除しておく。
+    if (AppConfig.kiosk) {
+      if (await LocationService.manualForced()) await LocationService.clearManual();
+      state = DemoSettings(enabled: true, manualLabel: null, failLlm: sp.getBool('demoFailLlm') ?? false);
+      return;
+    }
+    state = DemoSettings(
+      enabled: sp.getBool('demoEnabled') ?? false,
+      manualLabel: await LocationService.manualForced() ? await LocationService.manualLabel() : null,
+      failLlm: sp.getBool('demoFailLlm') ?? false,
+    );
   }
   Future<void> setEnabled(bool v) async {
     state = state.copyWith(enabled: v);
     (await SharedPreferences.getInstance()).setBool('demoEnabled', v);
   }
-  Future<void> setOverride(bool v) async {
-    state = state.copyWith(overrideLocation: v);
-    await LocationService.setOverride(enabled: v);
-    await ref.read(locationProvider.notifier).refresh();
+  /// リハーサル用の地点指定を解除して、実GPS に戻す。
+  Future<void> clearManualLocation() async {
+    await LocationService.clearManual();
+    state = DemoSettings(enabled: state.enabled, manualLabel: null, failLlm: state.failLlm, showFlood: state.showFlood, showTsunami: state.showTsunami, showLandslide: state.showLandslide);
+    try {
+      await ref.read(locationProvider.notifier).refresh();
+    } catch (_) {
+      // 戻した結果 GPS が取れなければ、画面側が「取得できません」を出す。
+    }
+  }
+
+  /// シートで地点を選んだあと、表示用のラベルを取り込む。
+  Future<void> syncManualLabel() async {
+    state = state.copyWith(manualLabel: await LocationService.manualForced() ? await LocationService.manualLabel() : null);
   }
   Future<void> setFailLlm(bool v) async {
     state = state.copyWith(failLlm: v);

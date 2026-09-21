@@ -12,7 +12,7 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
   const b = z.object({
     scenario: z.enum(["earthquake", "heavy_rain", "tsunami"]),
     lat: z.number(), lng: z.number(),
-    locationSource: z.enum(["gps", "cached", "override"]).default("gps"),
+    locationSource: z.enum(["gps", "cached", "manual"]).default("gps"),
     runNow: z.boolean().default(true),
     demo: z.object({ failLlm: z.boolean().optional() }).optional(),
   }).parse(body(req));

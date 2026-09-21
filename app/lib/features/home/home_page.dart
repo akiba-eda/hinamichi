@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../app/theme/hina_colors.dart';
+import '../../core/config.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
 import '../../domain/weather.dart';
 import '../../domain/social.dart';
 import '../../state/providers.dart';
+import '../../ui/organisms/location_unavailable.dart';
 import '../sos/sos_sheet.dart';
 import 'ask_sheet.dart';
 import '../../ui/atoms/atoms.dart';
@@ -102,7 +104,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     final nearby = ref.watch(nearbyProvider);
     final rainOn = ref.watch(rainOverlayProvider);
     final myStatus = ref.watch(myStatusProvider).value ?? FriendStatus.unknown;
-    final here = loc?.point ?? const LatLng(35.6588, 139.9013);
+    // 位置が取れていないときは、地図を描かずにそう言う。既定地点に寄せると
+    // 「あなたはここにいます」と宣言したことになり、そこの避難所を案内してしまう。
+    if (loc == null) return const LocationUnavailableView();
+    final here = loc.point;
 
     _syncTimers(inc);
     if (inc != null && (inc.state == IncidentState.proposing || inc.state.isGuiding)) _fitRoute(inc, here);

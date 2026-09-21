@@ -93,4 +93,4 @@ export type AgentLogEntry = {
   payload?: unknown; // e.g. the exact abstracted input sent to the LLM
 };
 
-export type LocationSource = "gps" | "cached" | "override";
+export type LocationSource = "gps" | "cached" | "manual";

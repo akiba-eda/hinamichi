@@ -13,7 +13,7 @@ import type { AlertDoc, IncidentState, LocationSource } from "./types.js";
 export const LocationBody = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  locationSource: z.enum(["gps", "cached", "override"]).default("gps"),
+  locationSource: z.enum(["gps", "cached", "manual"]).default("gps"),
 });
 
 export const incidentIdFor = (alertId: string, uid: string) => `${alertId}__${uid}`;

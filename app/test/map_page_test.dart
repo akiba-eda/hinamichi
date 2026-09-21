@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hinamichi/app/theme/hina_theme.dart';
+import 'package:hinamichi/core/location_service.dart';
 import 'package:hinamichi/domain/models.dart';
 import 'package:hinamichi/features/map/map_page.dart';
 import 'package:hinamichi/mock/mock_backend.dart';
@@ -9,7 +10,7 @@ import 'package:hinamichi/state/providers.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _here = LatLng(35.6588, 139.9013); // 南行徳駅(AppConfig のデモ既定値と同じ)
+const _here = LatLng(35.6588, 139.9013); // 任意の地点(この画面の判定には使わない)
 
 void main() {
   setUp(() {
@@ -24,6 +25,8 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: shelters, hazard: MockBackend.hazardHere)),
+        // 位置が無いと「位置が取得できません」に差し替わる画面なので、先に入れておく。
+        locationProvider.overrideWith((ref) => _FixedLocation(ref)),
         // 近隣情報はフレンド・合流を出さない(ホームに集約した)ので上書き不要。
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
@@ -43,6 +46,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: <ShelterInfo>[], hazard: null)),
+        locationProvider.overrideWith((ref) => _FixedLocation(ref)),
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));
@@ -70,4 +74,13 @@ void main() {
     // 指定していない避難所は素の混雑率のまま
     expect(full.firstWhere((s) => s.id == 'sh_dai7_jhs').full, isFalse);
   });
+}
+
+/// 位置の解決(GPS・権限)はテスト環境で動かないので、固定値を返すだけの差し替え。
+class _FixedLocation extends LocationNotifier {
+  _FixedLocation(super.ref) {
+    state = const ResolvedLocation(_here, 'gps');
+  }
+  @override
+  Future<ResolvedLocation> refresh() async => state!;
 }

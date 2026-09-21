@@ -9,6 +9,7 @@ import '../../core/config.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
 import '../../state/providers.dart';
+import '../../ui/organisms/location_unavailable.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../../ui/organisms/hina_map.dart';
@@ -41,7 +42,9 @@ class _MapPageState extends ConsumerState<MapPage> {
     final nearby = ref.watch(nearbyProvider);
     final demo = ref.watch(demoProvider);
     final type = ref.watch(mapDisasterTypeProvider);
-    final here = loc?.point ?? const LatLng(AppConfig.demoDefaultLat, AppConfig.demoDefaultLng);
+    // ホームと同じく、位置が無いときに既定地点へ寄せない。
+    if (loc == null) return const LocationUnavailableView();
+    final here = loc.point;
     final shelters = nearby.value?.shelters ?? const <ShelterInfo>[];
     ShelterInfo? highlighted;
     for (final s in shelters) {
