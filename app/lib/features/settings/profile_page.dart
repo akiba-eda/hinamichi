@@ -8,10 +8,12 @@ import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
+import '../../domain/social.dart';
 import '../../mock/mock_backend.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
 import 'emergency_page.dart';
+import 'places_page.dart';
 
 /// 設定 → プロフィール。
 ///
@@ -70,6 +72,26 @@ class ProfilePage extends ConsumerWidget {
           onTap: () => _editNote(context, ref, myStatus.note ?? ''),
         ),
         const Divider(height: 1),
+        // 平時に登録してもらうための入口。災害時だけの機能にすると、
+        // いざという時に誰も設定していない。
+        Consumer(builder: (context, ref, _) {
+          final places = ref.watch(placesProvider).value ?? const <SavedPlace>[];
+          return ListTile(
+            leading: const Icon(Icons.home_outlined, color: HinaColors.sky),
+            title: const Text('よく行く場所'),
+            subtitle: Text(
+              places.isEmpty
+                  ? '未登録 — 出入りしたとき、家族に自動で知らせます'
+                  : places.map((p) => p.name).join(' / '),
+              style: t.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlacesPage())),
+          );
+        }),
+        const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.sos_outlined, color: HinaColors.stUnknown),
           title: const Text('緊急時情報'),
@@ -85,6 +107,7 @@ class ProfilePage extends ConsumerWidget {
           padding: const EdgeInsets.all(HinaSpace.m),
           child: Text(
             'アイコンと名前は、招待した家族・友人の一覧に表示されます。メモは安否と一緒に相手へ届きます。\n\n'
+            'よく行く場所は出入りの判定にだけ使い、相手に届くのは場所の名前だけです。座標は送りません。\n\n'
             'プロフィール名は AI も受け取ります。緊急時情報(本名・住所・年齢・電話)は AI に一度も渡りません。',
             style: t.bodySmall,
           ),

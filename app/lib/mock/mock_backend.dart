@@ -178,6 +178,15 @@ class MockBackend extends StateNotifier<MockState> {
   }
 
   void addPlace(SavedPlace p) => state = state.copyWith(places: [...state.places, p]);
+
+  /// 追加と編集を同じ入口で扱う。id が既にあるものは差し替える
+  /// ── サーバー側(me/places)も id の有無で同じ分岐をしている。
+  void savePlace(SavedPlace p) {
+    final id = p.id.isEmpty ? 'pl_${DateTime.now().millisecondsSinceEpoch}' : p.id;
+    final saved = SavedPlace(id: id, name: p.name, point: p.point, radiusM: p.radiusM, kind: p.kind);
+    final rest = state.places.where((e) => e.id != id).toList();
+    state = state.copyWith(places: [...rest, saved]);
+  }
   void removePlace(String id) => state = state.copyWith(places: state.places.where((p) => p.id != id).toList());
 
   /// フレンドの位置を登録済みの場所と突き合わせて、到着/出発を作る。
