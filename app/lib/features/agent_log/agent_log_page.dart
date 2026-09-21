@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
+import '../../core/config.dart';
 import '../../domain/senavi.dart';
 import '../../state/providers.dart';
 import '../../ui/molecules/molecules.dart';
@@ -32,15 +33,18 @@ class _AgentLogPageState extends ConsumerState<AgentLogPage> {
               Text('まだ記録がありません。災害が起きるとここにセナヴィの判断が並びます。', textAlign: TextAlign.center, style: t.bodySmall),
             ])))
           : Column(children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(HinaSpace.m, HinaSpace.s, HinaSpace.m, 0),
-                child: SegmentedButton<_Tab>(
-                  segments: const [ButtonSegment(value: _Tab.all, label: Text('すべて')), ButtonSegment(value: _Tab.user, label: Text('ユーザー向け')), ButtonSegment(value: _Tab.judge, label: Text('審査員向け'))],
-                  selected: {tab},
-                  onSelectionChanged: (s) => setState(() => tab = s.first),
-                  style: SegmentedButton.styleFrom(selectedBackgroundColor: HinaColors.mist, selectedForegroundColor: HinaColors.ink),
+              // 会場ビルドでは「◯◯向け」の絞り込みを出さない。触る人にとっては
+              // 自分がどれなのか分からないうえ、全部出した方が情報は多い。
+              if (!AppConfig.kiosk)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(HinaSpace.m, HinaSpace.s, HinaSpace.m, 0),
+                  child: SegmentedButton<_Tab>(
+                    segments: const [ButtonSegment(value: _Tab.all, label: Text('すべて')), ButtonSegment(value: _Tab.user, label: Text('ユーザー向け')), ButtonSegment(value: _Tab.judge, label: Text('審査員向け'))],
+                    selected: {tab},
+                    onSelectionChanged: (s) => setState(() => tab = s.first),
+                    style: SegmentedButton.styleFrom(selectedBackgroundColor: HinaColors.mist, selectedForegroundColor: HinaColors.ink),
+                  ),
                 ),
-              ),
               if (latest != null && latest.id == id)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(HinaSpace.m, HinaSpace.s, HinaSpace.m, 0),

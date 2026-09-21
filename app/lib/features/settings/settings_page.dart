@@ -38,6 +38,13 @@ class SettingsPage extends ConsumerWidget {
             ])),
           ])),
         ),
+        // 会場ビルドでは、触る人が最初に見る位置に「体験する」を置く。
+        // 開発者向けの折りたたみの奥にあると、災害が起きないと何も起きない。
+        if (AppConfig.kiosk) ...[
+          const SectionHeader('災害を体験する'),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: HinaSpace.m), child: DemoPanel(kiosk: true)),
+          const SizedBox(height: 8),
+        ],
         // ボトムナビは設計書 §17.3 の 4 タブ構成にしたので、AgentLog はここから開く。
         const SectionHeader('セナヴィの記録'),
         ListTile(
@@ -131,6 +138,7 @@ class SettingsPage extends ConsumerWidget {
         SwitchListTile(title: const Text('浸水想定区域'), value: demo.showFlood, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(flood: v)),
         SwitchListTile(title: const Text('津波浸水想定'), value: demo.showTsunami, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(tsunami: v)),
         SwitchListTile(title: const Text('土砂災害警戒区域'), value: demo.showLandslide, onChanged: (v) => ref.read(demoProvider.notifier).setLayers(landslide: v)),
+        if (!AppConfig.kiosk) ...[
         const SectionHeader('開発者向け'),
         SwitchListTile(
           secondary: const Icon(Icons.dns_outlined),
@@ -151,6 +159,7 @@ class SettingsPage extends ConsumerWidget {
         if (demo.enabled) const Padding(padding: EdgeInsets.symmetric(horizontal: HinaSpace.m), child: DemoPanel()),
         ListTile(leading: const Icon(Icons.cloud_outlined), title: const Text('API サーバー'), subtitle: FutureBuilder(future: AppConfig.apiBase(), builder: (_, s) => Text(s.data ?? '')), trailing: const Icon(Icons.edit_outlined), onTap: () => _editApi(context, ref)),
         ListTile(leading: const Icon(Icons.widgets_outlined), title: const Text('Widget ギャラリー'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GalleryPage()))),
+        ],
         const SizedBox(height: 16),
         // 画面ごとに注釈を散らすと説明文だらけになるので、断り書きはここへ集約する。
         ListTile(

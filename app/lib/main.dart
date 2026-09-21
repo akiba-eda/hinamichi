@@ -6,9 +6,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/theme/hina_colors.dart';
 import 'app/theme/hina_theme.dart';
+import 'core/config.dart';
 import 'core/notifications.dart';
 import 'features/friends/friends_page.dart';
 import 'features/home/home_page.dart';
@@ -53,6 +56,24 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     }
   }
 
+  /// 会場ビルドの初回起動だけ、見守りリストに3人入れておく。
+  ///
+  /// 空のリストだと「安否が家族に自動で届く」という肝心のところが見えない。
+  /// かといって触る人に開発者向けの画面を辿らせるわけにもいかないので、
+  /// 起動時に一度だけ入れる。作られるのは Firestore の本物のドキュメントで、
+  /// 画面は通常どおり API 経由で読む(モックモードではない)。
+  Future<void> _seedKioskFriends(LatLng here) async {
+    final sp = await SharedPreferences.getInstance();
+    if (sp.getBool('kioskSeeded') ?? false) return;
+    try {
+      await ref.read(apiProvider).demoFriends('seed', lat: here.latitude, lng: here.longitude);
+      await sp.setBool('kioskSeeded', true);
+    } catch (e) {
+      // 入らなくても平時の画面は成立する。記録だけ残して次の起動でまた試す。
+      debugPrint('kiosk seed failed: $e');
+    }
+  }
+
   Future<void> _bootstrap() async {
     Notifications.onOpenAlert = _handleAlert;
 
@@ -68,7 +89,11 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     // 座標はサーバーに預けず、コードだけを端末が持つ。
     final area = ref.read(myAreaProvider);
     await area.load();
-    unawaited(ref.read(locationProvider.notifier).refresh().then((l) => area.update(l.point)).catchError((Object e) {
+    unawaited(ref.read(locationProvider.notifier).refresh().then((l) async {
+      await area.update(l.point);
+      if (AppConfig.kiosk) await _seedKioskFriends(l.point);
+      return null;
+    }).catchError((Object e) {
       debugPrint('area update failed: $e');
       return null;
     }));
