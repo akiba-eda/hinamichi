@@ -80,9 +80,9 @@ DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可(�
 | POST | /api/me/area | 自分の市区町村コード(**何も保存しない**) |
 | POST | /api/me/location | 最後にいた場所 + 到着/出発の判定 |
 | POST | /api/me/status | 本人が書くメモ |
-| POST | /api/me/places | よく行く場所の登録・削除 |
+| POST | /api/me/places | よく行く場所の登録・削除。出入りは /api/me/location 受信時にサーバーが判定 |
 | POST | /api/friends/accept / share / send / message | 招待 / 共有設定 / 本人の送信 / AI代筆(承認ゲート) |
-| POST | /api/meetup/start / end | 合流 |
+| POST | /api/meetup/start / end | 合流の開始 / 離脱(押した人だけ抜け、残り1人以下で閉じる) |
 | POST | /api/demo/fire / crowd / friends / reset | デモ操作 |
 | POST | /api/route | 2点間の徒歩経路(ORS。失敗時は直線距離にフォールバック) |
 | POST | /api/me/emergency | 緊急時情報(本名・住所・年齢・電話)。**LLM に渡らない別コレクション** |
