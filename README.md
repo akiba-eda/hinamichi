@@ -238,6 +238,7 @@ git clone https://github.com/akiba-eda/hinamichi.git && cd hinamichi
 
 | | |
 |---|---|
+| [解説記事（Qiita）](https://qiita.com/akiba-eda/items/b3febae692337c4e08da) | 作った理由、AIに何を渡していないか、詰まったところ、現時点の制約 |
 | [設計書](docs/ヒナミチ_設計書_v1.md) | エージェント設計 §6 / OrcaRouter 活用マトリクス §18 / UI 実装設計 §17 / 無課金構成 §20 |
 | [セットアップ手順](docs/SETUP.md) | 必要なアカウント / サーバー / Firebase / アプリ / OrcaRouter コンソール設定 / API 一覧 |
 | [コスト実測ログ](docs/orca_cost_log.md) | OrcaRouter の `/v1/generation` で照合した確定値と、LLM に渡した入力そのもの |
