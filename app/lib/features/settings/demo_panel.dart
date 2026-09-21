@@ -75,7 +75,8 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
       }
       return;
     }
-    await ref.read(apiProvider).demoFriends(action);
+    final loc = ref.read(locationProvider) ?? await ref.read(locationProvider.notifier).refresh();
+    await ref.read(apiProvider).demoFriends(action, lat: loc.point.latitude, lng: loc.point.longitude);
   }
 
   Future<void> _simulateArrival() async {

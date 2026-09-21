@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { route, body, requireDemoAdmin } from "../../http.js";
-import { db, COL, FieldValue } from "../../firebase.js";
+import { db, COL, FieldValue, Timestamp } from "../../firebase.js";
+import { offsetM } from "../../geo.js";
+import { getPlaceName } from "../../tools/areaCode.js";
 
 const MOCK = [
-  { key: "mock_mother", displayName: "お母さん", relation: "家族" },
-  { key: "mock_yuta", displayName: "ゆうた", relation: "友人" },
-  { key: "mock_sakura", displayName: "さくら", relation: "同僚" },
+  // 位置は現在地からのずらし幅(北へ m, 東へ m)。近所に散らして地図を成立させる。
+  { key: "mock_mother", displayName: "お母さん", relation: "家族", avatarMood: "smile", north: 420, east: -260, batteryPct: 74 },
+  { key: "mock_yuta", displayName: "ゆうた", relation: "友人", avatarMood: "running", north: -310, east: 540, batteryPct: 38 },
+  { key: "mock_sakura", displayName: "さくら", relation: "同僚", avatarMood: "normal", north: 680, east: 350, batteryPct: 91 },
 ];
 
 /**
@@ -14,7 +17,10 @@ const MOCK = [
  */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {
   requireDemoAdmin(ctx.uid!);
-  const { action } = z.object({ action: z.enum(["seed", "advance", "reset"]) }).parse(body(req));
+  // 位置は任意。渡されたときだけ、フレンドの最終位置も現在地のまわりに置く。
+  const { action, lat, lng } = z.object({ action: z.enum(["seed", "advance", "reset"]), lat: z.number().optional(), lng: z.number().optional() }).parse(body(req));
+  const here = lat != null && lng != null ? { lat, lng } : null;
+  const areaName = here ? await getPlaceName(here) : null;
   const uid = ctx.uid!;
   const batch = db().batch();
   const order = ["safe", "assessing", "evacuating", "arrived"];
@@ -22,21 +28,28 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
     const fid = `${m.key}_${uid.slice(0, 6)}`;
     const statusRef = db().collection(COL.statuses).doc(fid);
     if (action === "seed") {
-      batch.set(db().collection(COL.users).doc(fid), { displayName: m.displayName, isMock: true, createdAt: FieldValue.serverTimestamp() }, { merge: true });
-      batch.set(db().collection(COL.friends).doc(uid).collection("list").doc(fid), { status: "accepted", autoShare: true, displayName: m.displayName, relation: m.relation, isMock: true }, { merge: true });
-      batch.set(db().collection(COL.friends).doc(fid).collection("list").doc(uid), { status: "accepted", autoShare: true }, { merge: true });
-      batch.set(statusRef, { state: "safe", shelterName: null, note: null, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      batch.set(db().collection(COL.users).doc(fid), { displayName: m.displayName, avatarMood: m.avatarMood, isMock: true, createdAt: FieldValue.serverTimestamp() }, { merge: true });
+      batch.set(db().collection(COL.friends).doc(uid).collection("list").doc(fid), { status: "accepted", autoShare: true, displayName: m.displayName, avatarMood: m.avatarMood, relation: m.relation, isMock: true }, { merge: true });
+      // 相手側が自分に位置を見せている状態。これが無いとルールで読めず、地図に出ない。
+      batch.set(db().collection(COL.friends).doc(fid).collection("list").doc(uid), { status: "accepted", autoShare: true, shareLocation: true }, { merge: true });
+      batch.set(statusRef, { state: "safe", shelterName: null, shelterLat: null, shelterLng: null, note: null, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      if (here) {
+        const p = offsetM(here, m.north, m.east);
+        batch.set(db().collection(COL.locations).doc(fid), { lat: p.lat, lng: p.lng, at: Timestamp.now(), accuracyM: 20, batteryPct: m.batteryPct, ...(areaName ? { areaName } : {}), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      }
     } else if (action === "reset") {
-      batch.set(statusRef, { state: "safe", shelterName: null, note: null, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      batch.set(statusRef, { state: "safe", shelterName: null, shelterLat: null, shelterLng: null, note: null, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     } else {
       const cur = ((await statusRef.get()).data() as any)?.state ?? "safe";
       // stagger: friend i advances only if its index <= number of advances so far
       const next = order[Math.min(order.length - 1, order.indexOf(cur) + 1)]!;
-      const shelterName = next === "evacuating" || next === "arrived" ? ["南行徳小学校", "行徳高校", "市川市立第七中学校"][i] : null;
+      const shelterName = next === "evacuating" || next === "arrived" ? ["南行徳小学校", "行徳高校", "市川市立第七中学校"][i]! : null;
+      // 「地図で見る」で行き先まで寄れるように、名前と一緒に座標も載せる。
+      const sp = shelterName && here ? offsetM(here, m.north * 2, m.east * 2) : null;
       const note = next === "assessing" ? "確認中…" : next === "evacuating" ? "避難所へ向かっています" : next === "arrived" ? "到着しました" : null;
       // "mai" style unknown: leave last friend one step behind
       if (i === MOCK.length - 1 && next === "arrived") continue;
-      batch.set(statusRef, { state: next, shelterName, note, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      batch.set(statusRef, { state: next, shelterName, shelterLat: sp?.lat ?? null, shelterLng: sp?.lng ?? null, note, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     }
   }
   await batch.commit();

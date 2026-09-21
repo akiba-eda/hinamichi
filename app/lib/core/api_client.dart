@@ -102,6 +102,9 @@ class ApiClient {
       post('/api/demo/fire', {'scenario': scenario, 'lat': lat, 'lng': lng, 'locationSource': locationSource, 'runNow': true, if (failLlm) 'demo': {'failLlm': true}}, timeout: const Duration(seconds: 60));
   Future<Map<String, dynamic>> demoCrowd({required String shelterId, required bool full, required double lat, required double lng, required String locationSource}) =>
       post('/api/demo/crowd', {'shelterId': shelterId, 'full': full, 'lat': lat, 'lng': lng, 'locationSource': locationSource}, timeout: const Duration(seconds: 60));
-  Future<Map<String, dynamic>> demoFriends(String action) => post('/api/demo/friends', {'action': action});
+  /// 位置を渡すと、モックのフレンドを現在地のまわりに置いてくれる(地図と
+  /// 「最後にいた場所」を成立させるため)。渡さなくても安否だけは動く。
+  Future<Map<String, dynamic>> demoFriends(String action, {double? lat, double? lng}) =>
+      post('/api/demo/friends', {'action': action, if (lat != null) 'lat': lat, if (lng != null) 'lng': lng});
   Future<Map<String, dynamic>> demoReset() => post('/api/demo/reset', {});
 }

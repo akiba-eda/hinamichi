@@ -28,6 +28,7 @@ export const COL = {
   alertsSeen: "alertsSeen",
   incidents: "incidents", // incidents/{id}/agentLog/{seq}
   statuses: "statuses",
+  locations: "locations", // locations/{uid} — 最後に受け取った位置。許可した相手だけが読める
   shelterCrowd: "shelterCrowd",
   shelterCache: "shelterCache",
   approvals: "approvals",

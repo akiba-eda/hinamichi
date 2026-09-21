@@ -11,7 +11,9 @@ service cloud.firestore {
     // 明示的に立てているときだけ読める。既定は共有しない。
     function isLocationSharedWith(uid) {
       return isAcceptedFriendOf(uid)
-        && get(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid)).data.shareLocation == true;
+        // 追加した時点のドキュメントにはこの項目が無い。存在しない項目を
+        // 直接読むとルールが評価エラーになるので、既定 false で取り出す。
+        && get(/databases/$(database)/documents/friends/$(uid)/list/$(request.auth.uid)).data.get('shareLocation', false) == true;
     }
 
     // Own profile: read; client may only touch consent/displayName (everything else via server)

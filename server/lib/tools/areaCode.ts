@@ -30,6 +30,47 @@ export async function getAreaCode(p: LatLng): Promise<AreaInfo> {
   };
 }
 
+/**
+ * 市区町村コード → 「東京都足立区」。
+ *
+ * 逆ジオコーダが返す `lv01Nm` は町丁目(「猫実二丁目」)まで細かい。フレンドに
+ * 見せる「最後にいた場所」はそこまで要らない ── というより、見せるべきでない。
+ * 区市町村で止めるために、地理院の市区町村表を引く。100KB 程度なので
+ * インスタンスごとに 1 回だけ読む。
+ */
+let muniTable: Promise<Record<string, string> | null> | null = null;
+function muniNames(): Promise<Record<string, string> | null> {
+  muniTable ??= fetch("https://maps.gsi.go.jp/js/muni.js", { headers: { "User-Agent": "hinamichi/0.1" }, signal: AbortSignal.timeout(8000) })
+    .then(async (r) => {
+      if (!r.ok) return null;
+      const out: Record<string, string> = {};
+      // 行の形: GSI.MUNI_ARRAY["13121"] = '13,東京都,13121,足立区';
+      for (const m of (await r.text()).matchAll(/MUNI_ARRAY\["(\d+)"\]\s*=\s*'[^,]*,[^,]*,[^,]*,([^']*)'/g)) {
+        // 地理院の表は「札幌市　中央区」のように全角空白が入ることがある。
+        out[m[1]!.padStart(5, "0")] = m[2]!.replace(/[\s\u3000]+/g, "");
+      }
+      return Object.keys(out).length ? out : null;
+    })
+    .catch(() => null);
+  return muniTable;
+}
+
+/**
+ * フレンドに見せる地名。「東京都足立区」まで。
+ * 市区町村名が引けなければ都道府県だけ返す(空文字は返さない)。
+ */
+export async function getPlaceName(p: LatLng): Promise<string | null> {
+  try {
+    const area = await getAreaCode(p);
+    const pref = PREF[area.prefCd] ?? "";
+    const muni = (await muniNames())?.[area.muniCd] ?? "";
+    const name = `${pref}${muni}`;
+    return name || null;
+  } catch {
+    return null;
+  }
+}
+
 export const PREF: Record<string, string> = {
   "01": "北海道", "02": "青森県", "03": "岩手県", "04": "宮城県", "05": "秋田県", "06": "山形県", "07": "福島県",
   "08": "茨城県", "09": "栃木県", "10": "群馬県", "11": "埼玉県", "12": "千葉県", "13": "東京都", "14": "神奈川県",

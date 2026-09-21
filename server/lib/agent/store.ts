@@ -53,16 +53,25 @@ export const stateToPublic = (s: IncidentState): PublicStatus =>
   : s === "safe_zone" ? "safe_zone"
   : "safe";
 
-/** Update the user's public status (what friends see) honouring consent. */
-export async function publishStatus(uid: string, incidentId: string, state: IncidentState, shelterName?: string, note?: string) {
+/**
+ * Update the user's public status (what friends see) honouring consent.
+ *
+ * `note` には触らない ── あれは本人が書く一言(`/api/me/status`)で、
+ * セナヴィの案内文で上書きすると「3階にいます」が消えてしまう。
+ */
+export async function publishStatus(uid: string, incidentId: string, state: IncidentState, shelter?: { name?: string; lat?: number; lng?: number }) {
   const user = (await db().collection(COL.users).doc(uid).get()).data() as any;
   const consent = user?.consent ?? {};
   const pub: PublicStatus = stateToPublic(state);
+  const share = consent.shareShelterName !== false && shelter?.name;
   const doc: Record<string, unknown> = {
     state: pub,
     incidentId,
-    note: note ?? null,
-    shelterName: consent.shareShelterName !== false && shelterName ? shelterName : null,
+    shelterName: share ? shelter.name : null,
+    // 行き先は名前だけだと地図に出せない。「地図で見る」で寄せるために座標も持たせる。
+    // 本人の位置ではなく避難場所の位置なので、安否を共有する相手には見せてよい。
+    shelterLat: share && shelter.lat != null ? shelter.lat : null,
+    shelterLng: share && shelter.lng != null ? shelter.lng : null,
     updatedAt: FieldValue.serverTimestamp(),
   };
   await db().collection(COL.statuses).doc(uid).set(doc, { merge: true });
