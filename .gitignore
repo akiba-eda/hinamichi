@@ -18,6 +18,7 @@ server/.vercel-token
 
 # 作業用の退避・検討メモ。リポジトリには入れない
 _to_delete/
+HANDOFF.md
 /*.png
 /*.PNG
 /*.pdf
