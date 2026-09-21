@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertQuota, QUOTA } from "../../quota.js";
 import { route, body } from "../../http.js";
 import { orcaChat } from "../../orca.js";
 import { ASK_SYSTEM } from "../../agent/prompts.js";
@@ -44,6 +45,7 @@ const Body = z.object({
 });
 
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {
+  await assertQuota(ctx.uid!, "ask", QUOTA.ask);
   const b = Body.parse(body(req));
   const here = { lat: b.lat, lng: b.lng };
 

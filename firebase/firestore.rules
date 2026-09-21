@@ -91,6 +91,8 @@ service cloud.firestore {
     match /shelterCrowd/{id} { allow read: if signedIn(); allow write: if false; }
     match /shelterCache/{id} { allow read: if signedIn(); allow write: if false; }
     match /alertsSeen/{id} { allow read, write: if false; }
+    // 回数制限のカウンタ。サーバーだけが数える。
+    match /quota/{id} { allow read, write: if false; }
     match /approvals/{id} { allow read: if signedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
   }
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertQuota, QUOTA } from "../../quota.js";
 import { route, body, requireDemoAdmin } from "../../http.js";
 import { createDemoAlert, deliverDemoAlert } from "../../alerts.js";
 import { startIncident } from "../../agent/service.js";
@@ -9,6 +10,7 @@ import { startIncident } from "../../agent/service.js";
  */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {
   requireDemoAdmin(ctx.uid!);
+  await assertQuota(ctx.uid!, "demoFire", QUOTA.demoFire);
   const b = z.object({
     scenario: z.enum(["earthquake", "heavy_rain", "tsunami"]),
     lat: z.number(), lng: z.number(),

@@ -45,7 +45,7 @@ ORCA_FALLBACK_DECIDE=openai/gpt-4o,google/gemini-2.5-pro   # orcaCheck の一覧
 FIREBASE_SERVICE_ACCOUNT_B64=$(base64 -i serviceAccount.json | tr -d '\n')
 ORS_API_KEY=...
 CRON_TOKEN=<ランダム文字列>
-DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可(ハッカソン中はこれでOK)
+DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可。回数制限(server/lib/quota.ts)が別に効く
 ```
 
 ### 1.1 Vercel にデプロイ
@@ -69,6 +69,19 @@ DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可(�
    - **電話番号とメールは対象にしない**。伏せると承認カードから家族に連絡先を送れなくなる。
      アプリ側(`routes/friends/message.ts`)は伏せ字が返っても原文を送る作りにしてあるが、設定としては入れない
 4. (余裕があれば)**Firewall** rule: stage response / tool_name_glob `notify_*` / verdict pending_approval
+
+### 1.2b 回数制限(LLM のクレジットを守る)
+
+デモの発火は誰でも叩ける(会場ビルドは毎回新しい匿名 uid なので、uid で絞ると成立しない)。
+代わりに `server/lib/quota.ts` で **1人あたり × 全体の1日あたり** の二段で頭打ちにしている。
+
+| 経路 | 1人あたり | 全体/日 |
+|---|---|---|
+| `/api/demo/fire` | 10分に10回 | 300回(約 $3) |
+| `/api/agent/run` `/api/agent/reselect` | 10分に10回 | — |
+| `/api/senavi/ask` `/api/friends/message` | 10分に30回 | — |
+
+超えると 429 `rate_limited`。カウンタは Firestore の `quota/` に置き、サーバーだけが触る。
 
 ### 1.3 API 一覧
 | Method | Path | 用途 |

@@ -25,6 +25,7 @@ export const COL = {
   users: "users",
   friends: "friends", // friends/{uid}/list/{friendUid}
   alerts: "alerts",
+  quota: "quota", // 回数制限のカウンタ(サーバー専用)
   alertsSeen: "alertsSeen",
   incidents: "incidents", // incidents/{id}/agentLog/{seq}
   statuses: "statuses",

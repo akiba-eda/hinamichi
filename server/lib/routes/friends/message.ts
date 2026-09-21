@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertQuota, QUOTA } from "../../quota.js";
 import { route, body, HttpError } from "../../http.js";
 import { orcaChat } from "../../orca.js";
 import { notifyFriends, IncidentLog } from "../../agent/store.js";
@@ -16,6 +17,7 @@ import { db, COL } from "../../firebase.js";
  * カード番号だけは block にしてあり、その時は送信そのものを止める。
  */
 export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx) => {
+  await assertQuota(ctx.uid!, "message", QUOTA.message);
   const { text, incidentId } = z.object({ text: z.string().min(1).max(200), incidentId: z.string().optional() }).parse(body(req));
   let outgoing = text;
   let meta: Record<string, unknown> = {};
