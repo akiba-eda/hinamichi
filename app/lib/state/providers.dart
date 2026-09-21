@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/api_client.dart';
 import '../core/my_area.dart';
+import '../core/rain_tiles.dart';
 import '../core/location_service.dart';
 import '../core/location_uploader.dart';
 import '../core/pending_locations.dart';
@@ -306,6 +307,18 @@ class BasemapNotifier extends StateNotifier<HinaBasemap> {
     (await SharedPreferences.getInstance()).setString('basemap', b.name);
   }
 }
+
+// ------------------------------------------------------------------ 雨雲レーダー
+/// 地図に雨雲を重ねるか。ホームのボタンで切り替える。
+final rainOverlayProvider = StateProvider<bool>((_) => false);
+
+/// 雨雲タイルの観測時刻。5 分ごとに更新されるので、出している間だけ引き直す。
+final rainFrameProvider = FutureProvider<RainFrame?>((ref) async {
+  if (!ref.watch(rainOverlayProvider)) return null;
+  final t = Timer(const Duration(minutes: 5), ref.invalidateSelf);
+  ref.onDispose(t.cancel);
+  return fetchLatestRainFrame();
+});
 
 // ------------------------------------------------------------------ nearby shelters (peacetime map)
 final mapDisasterTypeProvider = StateProvider<DisasterType>((_) => DisasterType.earthquake);

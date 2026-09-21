@@ -97,6 +97,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final senavi = ref.watch(senaviProvider);
     final demo = ref.watch(demoProvider);
     final nearby = ref.watch(nearbyProvider);
+    final rainOn = ref.watch(rainOverlayProvider);
     final myStatus = ref.watch(myStatusProvider).value ?? FriendStatus.unknown;
     final here = loc?.point ?? const LatLng(35.6588, 139.9013);
 
@@ -131,6 +132,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             showFlood: demo.showFlood,
             showTsunami: demo.showTsunami || inc?.type == DisasterType.tsunami,
             showLandslide: demo.showLandslide,
+            rain: ref.watch(rainFrameProvider).value,
             mood: senavi.mood,
             basemap: ref.watch(basemapProvider),
             friends: ref.watch(friendsOnMapProvider),
@@ -153,6 +155,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                     final r = await ref.read(locationProvider.notifier).refresh();
                     _map.move(r.point, 15);
                   }),
+                  const SizedBox(width: 8),
+                  // 雨雲は見たい時にすぐ出せないと意味がないので、設定ではなくここに置く。
+                  _RoundButton(
+                    icon: HinaIcon.rain,
+                    active: rainOn,
+                    onTap: () => ref.read(rainOverlayProvider.notifier).state = !rainOn,
+                  ),
                   const SizedBox(width: 8),
                   if (state == IncidentState.idle)
                     DisasterTypeSelector(
@@ -180,7 +189,14 @@ class _HomePageState extends ConsumerState<HomePage> {
             ]),
           ),
         ),
-        Positioned(right: 12, bottom: 300, child: HazardLegend(flood: demo.showFlood, tsunami: demo.showTsunami || inc?.type == DisasterType.tsunami, landslide: demo.showLandslide)),
+        // 雨雲を出している間はハザードを重ねないので、凡例も入れ替える。
+        Positioned(
+          right: 12,
+          bottom: 300,
+          child: rainOn
+              ? RainLegend(at: ref.watch(rainFrameProvider).value?.at)
+              : HazardLegend(flood: demo.showFlood, tsunami: demo.showTsunami || inc?.type == DisasterType.tsunami, landslide: demo.showLandslide),
+        ),
         // Bottom sheet
         Positioned(left: 0, right: 0, bottom: 0, child: _sheet(context, inc, state, senavi, nearby)),
       ]),
@@ -281,17 +297,24 @@ class _HomePageState extends ConsumerState<HomePage> {
 class _RoundButton extends StatelessWidget {
   final HinaIcon icon;
   final VoidCallback onTap;
-  const _RoundButton({required this.icon, required this.onTap});
+
+  /// 押しっぱなしで効き続ける種類のボタン(雨雲の重ねなど)の、入り切りの見た目。
+  final bool active;
+  const _RoundButton({required this.icon, required this.onTap, this.active = false});
   @override
   Widget build(BuildContext context) => Material(
-        color: HinaColors.surface,
+        color: active ? HinaColors.sky : HinaColors.surface,
         shape: const CircleBorder(),
         elevation: 2,
         shadowColor: Colors.black26,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
-          child: SizedBox(width: 44, height: 44, child: Center(child: HinaIconView(icon, size: 22))),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(child: HinaIconView(icon, size: 22, color: active ? Colors.white : HinaColors.ink)),
+          ),
         ),
       );
 }

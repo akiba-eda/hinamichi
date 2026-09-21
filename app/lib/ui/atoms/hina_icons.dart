@@ -7,7 +7,7 @@ import '../../app/theme/hina_colors.dart';
 /// Material のアイコンは線が硬く、デザイン書の丸いストロークと並べると浮く。
 /// 角を丸めた 2px ストロークで描き直したもの。24 グリッドで設計し、[size] に
 /// 合わせて等倍スケールする。
-enum HinaIcon { home, map, friends, settings, locate, warning, done, log, shelter, chat, battery }
+enum HinaIcon { home, map, friends, settings, locate, warning, done, log, shelter, chat, battery, rain }
 
 class HinaIconView extends StatelessWidget {
   final HinaIcon icon;
@@ -202,6 +202,19 @@ class _HinaIconPainter extends CustomPainter {
           ..close();
         canvas.drawPath(bubble, fill);
         canvas.drawPath(bubble, stroke);
+      case HinaIcon.rain:
+        // 雲と、その下に落ちる雨。地図に重ねる雨雲レーダーの切り替えに使う。
+        final cloud = Path()
+          ..moveTo(6.6, 14.6)
+          ..arcToPoint(const Offset(7.4, 8.6), radius: const Radius.circular(3.2))
+          ..arcToPoint(const Offset(16.2, 8.2), radius: const Radius.circular(4.4))
+          ..arcToPoint(const Offset(17.4, 14.6), radius: const Radius.circular(3.2))
+          ..close();
+        canvas.drawPath(cloud, fill);
+        canvas.drawPath(cloud, stroke);
+        for (final x in [8.8, 12.0, 15.2]) {
+          canvas.drawLine(Offset(x, 16.8), Offset(x - 1.2, 20.2), stroke);
+        }
     }
     canvas.restore();
   }

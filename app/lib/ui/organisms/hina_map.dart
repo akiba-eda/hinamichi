@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import '../../app/theme/hina_colors.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
+import '../../core/rain_tiles.dart';
 import '../../domain/social.dart';
 import '../atoms/atoms.dart';
 import 'hina_basemap.dart';
@@ -31,6 +32,11 @@ class HinaMap extends StatefulWidget {
   /// 進行中の合流。地点に旗を立てる。
   final Meetup? meetup;
 
+  /// 雨雲レーダーの観測時刻。null なら重ねない。
+  /// **これが入っている間はハザードを出さない** ── 同じ場所に色を重ねると
+  /// どちらも読めなくなるため。
+  final RainFrame? rain;
+
   const HinaMap({
     super.key,
     this.controller,
@@ -48,6 +54,7 @@ class HinaMap extends StatefulWidget {
     this.friends = const [],
     this.onFriendTap,
     this.meetup,
+    this.rain,
   });
 
   static const hazardBase = 'https://disaportaldata.gsi.go.jp/raster';
@@ -107,11 +114,15 @@ class _HinaMapState extends State<HinaMap> {
       options: MapOptions(initialCenter: widget.center, initialZoom: widget.zoom, minZoom: 5, maxZoom: 18, interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate)),
       children: [
         ..._baseLayers(context),
-        if (widget.showFlood) _hazard('01_flood_l2_shinsuishin_data', 0.35),
-        if (widget.showTsunami) _hazard('04_tsunami_newlegend_data', 0.35),
-        if (widget.showLandslide) ...[
-          _hazard('05_dosekiryukeikaikuiki', 0.4),
-          _hazard('05_kyukeishakeikaikuiki', 0.4),
+        if (widget.rain != null)
+          _rain(widget.rain!)
+        else ...[
+          if (widget.showFlood) _hazard('01_flood_l2_shinsuishin_data', 0.35),
+          if (widget.showTsunami) _hazard('04_tsunami_newlegend_data', 0.35),
+          if (widget.showLandslide) ...[
+            _hazard('05_dosekiryukeikaikuiki', 0.4),
+            _hazard('05_kyukeishakeikaikuiki', 0.4),
+          ],
         ],
         if (widget.route.length > 1)
           PolylineLayer(polylines: [
@@ -165,7 +176,10 @@ class _HinaMapState extends State<HinaMap> {
           attributions: [
             // 出典表記は任意ではなく条件。基図を変えたら表記も変える。
             for (final a in _basemap.attributions) TextSourceAttribution(a),
-            if (widget.showFlood || widget.showTsunami || widget.showLandslide) const TextSourceAttribution('ハザードマップポータルサイト(国土交通省)'),
+            if (widget.rain != null)
+              const TextSourceAttribution('高解像度降水ナウキャスト(気象庁)')
+            else if (widget.showFlood || widget.showTsunami || widget.showLandslide)
+              const TextSourceAttribution('ハザードマップポータルサイト(国土交通省)'),
           ],
         ),
       ],
@@ -182,6 +196,19 @@ class _HinaMapState extends State<HinaMap> {
         userAgentPackageName: 'jp.hinamichi.app',
         maxNativeZoom: 17,
         tileBuilder: (c, w, _) => Opacity(opacity: opacity, child: w),
+        errorTileCallback: (_, __, ___) {},
+        tileProvider: NetworkTileProvider(silenceExceptions: true),
+      );
+
+  /// 雨雲の重ね。
+  ///
+  /// z=10 までしか配信が無いので、拡大時はそのタイルを引き伸ばす
+  /// (`maxNativeZoom`)。指定しないと拡大した瞬間に雨雲だけ消える。
+  Widget _rain(RainFrame f) => TileLayer(
+        urlTemplate: f.urlTemplate,
+        userAgentPackageName: 'jp.hinamichi.app',
+        maxNativeZoom: RainFrame.maxNativeZoom,
+        tileBuilder: (c, w, _) => Opacity(opacity: 0.6, child: w),
         errorTileCallback: (_, __, ___) {},
         tileProvider: NetworkTileProvider(silenceExceptions: true),
       );

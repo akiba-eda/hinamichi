@@ -544,6 +544,52 @@ class DisasterTypeSelector extends StatelessWidget {
       );
 }
 
+// ---------------------------------------------------------------- RainLegend
+/// 雨雲レーダーの凡例。
+///
+/// 観測時刻を必ず添える ── 雨雲は5分で変わるので、「いつの雨か」が分からない
+/// 絵は判断材料にならない。
+class RainLegend extends StatelessWidget {
+  final DateTime? at;
+  const RainLegend({super.key, this.at});
+
+  /// 気象庁の降水強度の凡例(弱い方から4段階ぶんだけ。強い雨は稀なので畳む)。
+  static const _steps = <(Color, String)>[
+    (Color(0xFFA0D2FF), '1〜5mm/h'),
+    (Color(0xFF218CFF), '5〜10'),
+    (Color(0xFF0041FF), '10〜20'),
+    (Color(0xFFFAF500), '20〜30'),
+    (Color(0xFFFF9900), '30〜50'),
+    (Color(0xFFFF2800), '50〜'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = at?.toLocal();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: HinaColors.surface.withOpacity(0.92), borderRadius: BorderRadius.circular(10)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+        Text(
+          t == null ? '雨雲 読み込み中' : '雨雲 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')} 現在',
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: HinaColors.ink),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (c, _) in _steps)
+              Container(width: 13, height: 10, color: c.withOpacity(0.7)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        const Text('弱い　　　　　　強い', style: TextStyle(fontSize: 9, color: HinaColors.inkSub)),
+        const Text('高解像度降水ナウキャスト(気象庁)', style: TextStyle(fontSize: 9, color: HinaColors.inkSub)),
+      ]),
+    );
+  }
+}
+
 // ---------------------------------------------------------------- HazardLegend
 class HazardLegend extends StatelessWidget {
   final bool flood, tsunami, landslide;
