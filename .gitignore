@@ -16,8 +16,13 @@ app/lib/firebase_options.dart
 # Vercel CLI のアクセストークン(エージェント環境では対話ログインができないため)
 server/.vercel-token
 
-# 作業用の退避。リポジトリには入れない
+# 作業用の退避・検討メモ。リポジトリには入れない
 _to_delete/
+/*.png
+/*.PNG
+/*.pdf
+/*.jpg
+ハッカソン概要ブリーフ*.md
 
 # IDE
 .idea/

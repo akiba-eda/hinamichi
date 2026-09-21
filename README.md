@@ -149,8 +149,10 @@ npm install
 cp .env.example .env         # 値を埋める(下記)
 npm test                      # 純粋ロジックのユニットテスト(バリデータ・フォールバック・データ最小化・ハザード色)
 npm run typecheck
-npx tsx scripts/orcaCheck.ts  # OrcaRouter 疎通: モデル一覧 / usage.cost_usd / tool calling
-npx tsx scripts/smoke.ts 35.6588 139.9013   # 実データツール疎通(南行徳駅): 逆ジオ・ハザード・避難所・標高・経路
+# 以下は .env を読むので --env-file が要る
+npx tsx --env-file=.env scripts/orcaCheck.ts     # OrcaRouter 疎通: モデル一覧 / usage.cost_usd / tool calling
+npx tsx --env-file=.env scripts/smoke.ts 35.6588 139.9013   # 実データ疎通(南行徳駅): 逆ジオ・ハザード・避難所・標高・経路
+npx tsx --env-file=.env scripts/lastIncident.ts  # 直近の判断とAgentLogをFirestoreから直読み
 npx vercel dev                # http://localhost:3000
 ```
 
