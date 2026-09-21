@@ -1,17 +1,131 @@
 # ヒナミチ (HINAMICHI) — 災害時、あなたの代わりに判断して安全な道へ
 
 AI HACK 2026 #2「業務を自律化するAIエージェント」応募作品。
-AIナビゲーター **セナヴィ (SENAvi)** が、速報 → 関係判定 → 避難先選定 → 道案内 → 家族への状態共有までを自律的に進めます。
+
+AIナビゲーター **セナヴィ (SENAvi)** が、気象庁の速報を掴むところから、
+あなたに関係があるかの判定、避難先の選定、道案内、家族への安否連絡までを、
+**人の操作を挟まずに**進めます。
+
+平時は雨雲レーダーと見守りのアプリとして動きます。災害の日だけ開くアプリは、
+その日も開かれないからです。
+
+---
+
+## 審査基準への回答
+
+### ④ 自律性 — 人が操作しなくても、ここまで進む
+
+```
+cron-job.org (2分ごと)
+  └→ GET /api/watch/disasters
+       └→ 気象庁の防災情報XMLフィード / P2P地震情報 を読む
+            └→ 新しい警報だけを alerts に書く          ← ここまで人は関与しない
+                 └→ その市区町村にいる端末にだけ通知    ← 位置はサーバーに無い(後述)
+                      └→ セナヴィが起動
+                           ├ 一次判定: この災害はあなたに関係あるか
+                           ├ 避難場所を8件集め、ハザード・標高・混雑・道のりを付ける
+                           ├ 災害種別に合う候補を選ぶ
+                           └ 安全ルールで検算する(LLMの答えを鵜呑みにしない)
+                                └→ 30秒で自動承認して案内開始   ← 押さなくても進む
+                                     ├ 行き先が満員 → 自動で選び直し
+                                     ├ 100m圏内に入る → 自動で到着判定
+                                     └ 家族へ「確認中 → 避難中 → 到着」を自動送信
+```
+
+実際に動いている証拠は `docs/api_integration_tasks.md` と、アプリ内の
+**設定 →「判断の記録」**で確認できます。
+
+### ① セキュリティ — 座標を渡さない・置かない
+
+**LLM に位置を渡していません。** 避難場所の候補は仮名 A〜H に置き換え、
+特徴だけを渡します。実際に送っている内容:
+
+```json
+{"disaster": {"type":"earthquake","title":"地震(最大震度6弱・千葉県猫実二丁目付近)","intensity":"6弱"},
+ "user": {"areaName":"千葉県猫実二丁目","hazardHere":{"flood":"0.5〜3m","tsunamiZone":true}},
+ "candidatesPreview": [{"id":"A","walkMin":6,"direction":"南","elevationM":1.2,
+                        "flood":"浸水想定なし","tsunami":"0.5〜3m","crowdPct":0}]}
+```
+
+座標・氏名・連絡先・端末IDは含まれません。`assertNoCoordinates()`
+(`server/lib/agent/abstraction.ts`)が送信前に機械的に検査します。
+
+**警報の絞り込みでも、位置をサーバーに置きません。** 端末が自分の市区町村
+コードで FCM トピックを購読し、サーバーは警報の対象市区町村のトピックへ送る
+── この形なら、サーバーは誰がどこにいるかを知らないまま、その土地の人にだけ
+鳴らせます(`server/lib/alerts.ts` の `broadcastAlert`)。
+
+フレンドへの位置共有は**相手ごとの許可制**で、既定は共有しません。
+許可されていない相手の位置は Firestore のルールが弾きます
+(`firebase/firestore.rules`)。
+
+### ② コストパフォーマンス — 1件 $0.013
+
+判断を 2 段に分け、**安いモデルで足切りしてから高いモデルを使います**。
+実測値(2026-09-21、実データでの1件):
+
+| 段 | Router | モデル | コスト |
+|---|---|---|---|
+| 一次判定「関係あるか」 | `hina-triage` | `google/gemini-2.5-flash-lite` | **$0.000034** |
+| 避難先の判断 | `hina-decide` | `anthropic/claude-sonnet-5` | **$0.01301** |
+
+関係ない災害はここで止まるので、高いモデルは動きません。
+コストは OrcaRouter の `/v1/generation` で確定値を照合して記録します
+(インライン値と食い違う場合は確定値が正)。
+
+外部データは**すべて無料・カード登録不要**です。気象庁、国土地理院、
+ハザードマップポータル、OpenRouteService、P2P地震情報、cron-job.org。
+Firebase は Spark、Vercel は Hobby。
+
+### ③ 信頼性・堅牢性 — 落ちても案内を止めない
+
+| 落ちたもの | どうするか |
+|---|---|
+| LLM(遅い・不正な答え) | **安全ルールだけで選定して案内を続ける**(`validatedBy: 'fallback'`) |
+| OrcaRouter の第一候補 | フォールバックチェーンで次のモデルへ |
+| 経路API(OpenRouteService) | 直線距離 + 80m/分の目安に切り替え |
+| 地図タイルの配信元 | 5枚失敗したら別の配信元へ逃げる |
+| 圏外 | 位置を端末に溜めて、繋がったら古い順に送る |
+| 逆ジオ・標高・混雑 | 取れなかった項目だけ落として、判断は続ける |
+
+テストは server 43 件 / app 26 件。バリデータ、フォールバック、データ最小化、
+ハザードの色判定、経路の残距離、気象XMLの解析を固定しています。
+
+### ⑤ アイデア・独創性 — 平時と災害時を同じ仕組みで賄う
+
+防災アプリの最大の問題は「その日まで開かれない」ことです。ヒナミチは
+到着通知・見守り・雨雲レーダー・やりとりを**災害時と同じ部品**で動かします。
+
+- よく行く場所への到着判定 = 避難場所への到着判定(同じジオフェンス)
+- 家族への「自宅に着いたよ」= 「避難所に着いたよ」(同じ経路)
+- 平時の雨雲レーダー = 豪雨警報時のハザード判断(同じタイル)
+
+普段から使っている場所にスタンプの「無事」「助けて」があるから、とっさに押せます。
+
+---
+
+## 構成
 
 ```
 hinamichi/
   app/        Flutter (iOS / Android)            ← UI。設計書 §17
-  server/     Vercel Functions (Node/TS)         ← エージェント本体・実データツール・OrcaRouter。設計書 §6, §7, §15, §18, §20
-  firebase/   Firestore rules / indexes           ← Spark プランのまま
-  docs/       設計書
+  server/     Vercel Functions (Node/TS)         ← エージェント本体・実データツール・OrcaRouter
+  firebase/   Firestore rules / indexes          ← Spark プランのまま
+  docs/       設計書・API繋ぎ込みのタスク表
 ```
 
-全部 **カード登録なしの無料枠** で動きます(Firebase Spark / Vercel Hobby / cron-job.org / OpenRouteService / 地理院タイル)。
+| 使っているもの | 用途 | 料金 |
+|---|---|---|
+| **OrcaRouter** | LLM のルーティング・フォールバック・コスト照合 | 提供クレジット |
+| Firebase (Spark) | 匿名認証 / Firestore / FCM | 無料 |
+| Vercel (Hobby) | エージェント API(関数1本に集約) | 無料 |
+| cron-job.org | 2分ごとの災害監視 | 無料 |
+| 気象庁 防災情報XML | 気象警報・注意報 | 無料・登録不要 |
+| 気象庁 降水ナウキャスト | 雨雲レーダー | 無料・登録不要 |
+| 国土地理院 | 避難場所 / 標高 / 逆ジオ / 地図タイル | 無料・登録不要 |
+| ハザードマップポータル | 浸水・津波・土砂の想定区域 | 無料・登録不要 |
+| P2P地震情報 | 地震速報 | 無料・登録不要 |
+| OpenRouteService | 徒歩経路・多地点距離 | 無料(要キー) |
 
 ---
 
@@ -74,15 +188,24 @@ DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可(�
 ### 1.3 API 一覧
 | Method | Path | 用途 |
 |---|---|---|
-| POST | /api/me/register | プロフィール・FCM トークン・同意 |
-| POST | /api/agent/run | アラートに対してエージェント起動(通知を開いた時) |
+| GET | /api/watch/disasters?token= | **実データ監視(cron が2分ごとに叩く)** |
+| POST | /api/agent/run | アラートに対してエージェント起動 |
 | POST | /api/agent/action | start(承認) / later / arrived / safe_zone / close |
 | POST | /api/agent/reselect | 再選定(満員 / 別の場所へ) |
 | POST | /api/agent/position | 誘導中の位置 → 到着ジオフェンス(100m) |
 | POST | /api/shelters/nearby | 平時の周辺避難所 + 現在地ハザード |
-| POST | /api/friends/accept, /share, /message | 招待コード / 自動共有 / 承認済み自由文送信 |
-| GET | /api/watch/disasters?token= | 実データ監視(cron) |
-| POST | /api/demo/fire, /crowd, /friends, /reset | デモ操作 |
+| POST | /api/weather/nowcast | 雨雲ナウキャスト(直近60分) |
+| POST | /api/me/register | プロフィール・アイコン・FCM トークン・同意 |
+| POST | /api/me/area | 自分の市区町村コード(**何も保存しない**) |
+| POST | /api/me/location | 最後にいた場所 + 到着/出発の判定 |
+| POST | /api/me/status | 本人が書くメモ |
+| POST | /api/me/places | よく行く場所の登録・削除 |
+| POST | /api/friends/accept / share / send / message | 招待 / 共有設定 / 本人の送信 / AI代筆(承認ゲート) |
+| POST | /api/meetup/start / end | 合流 |
+| POST | /api/demo/fire / crowd / friends / reset | デモ操作 |
+
+Vercel Hobby は 1 デプロイ 12 関数までなので、全部を `api/[...path].ts`
+1 本に束ねて `lib/routes/` へ振り分けています。URL は変わりません。
 
 すべて `Authorization: Bearer <Firebase ID token>`(cron は token クエリ)。
 
@@ -104,7 +227,7 @@ Authentication → **匿名**を有効化。Cloud Messaging はそのまま(Andr
 
 ```bash
 cd app
-bash tool/setup.sh                 # flutter create(android/ios 生成)→ pub get → 権限パッチ → アイコン生成
+flutter pub get
 dart pub global activate flutterfire_cli
 flutterfire configure --project=<project-id>   # lib/firebase_options.dart と各 OS の設定ファイルを生成
 flutter analyze && flutter test
@@ -113,7 +236,8 @@ flutter run -d <android> --dart-define=API_BASE=https://<project>.vercel.app
 - API の向き先は設定画面からも変更可(LAN 開発時 `http://<MacのIP>:3000`)
 - 設定 → **DEMO モード** ON → 発火パネル(地震 / 豪雨 / 津波 / 満員 / 移動シミュレーション / LLM 障害注入 / モックフレンド)
 - 設定 → **Widget ギャラリー** で全部品を全状態で確認(デザイン書と並べて見比べる)
-- セナヴィの画像は `app/assets/README.md` の通り差し替えるだけ(今はプレースホルダー)
+- `ios/` `android/` はリポジトリに入っているので `flutter create` は不要。
+  位置情報の用途説明なども当たった状態です
 
 ### 端末の役割
 - **Android = 本人端末(主デモ機)**: プッシュあり
@@ -122,6 +246,7 @@ flutter run -d <android> --dart-define=API_BASE=https://<project>.vercel.app
 ---
 
 ## 4. デモの流れ(発表 4 分)
+0. **雨雲ボタン** → いま降っている雨が地図に乗る(平時の使い道)
 1. 平時 Home(現地の実データ: 避難所ピン + 浸水想定)
 2. 設定 → DEMO → **地震** → Home に戻ると 2〜3 秒で「◯◯へ。徒歩◯分」+ 理由 3 点、家族には「確認中→避難中」
 3. 「このルートで行く」(押さなければ 30 秒で自動開始)
