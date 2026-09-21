@@ -15,6 +15,8 @@ export type OrcaMeta = {
   fallbackModel?: string;
   sessionTier?: string;
   promptRef?: string;
+  /** prompt_ref を要求したのに OrcaRouter 側で解決されなかった。 */
+  promptRefMissed?: boolean;
   costUsd?: number;
   promptTokens?: number;
   completionTokens?: number;
@@ -75,9 +77,17 @@ export async function orcaChat(opts: OrcaCallOpts) {
   const c = getClient();
   const t0 = Date.now();
 
-  const messages: ChatCompletionMessageParam[] = usePromptRef()
-    ? opts.messages
-    : [{ role: "system", content: fillTemplate(opts.systemFallback, opts.promptVariables) }, ...opts.messages];
+  // システムプロンプトは**常に**自前でも送る。
+  //
+  // `prompt_ref` は名前が間違っていても 400 にならず、黙って素通りする
+  // (実測: 存在しない名前でも 200 が返り、注入されたときだけ X-Orca-Prompt が付く)。
+  // 登録側に任せきりにすると、打ち間違いひとつでセナヴィが素の LLM になる。
+  // 命に関わる判断をさせているので、指示が消える方の事故は許容できない。
+  // 注入が効いた場合は同じ趣旨の指示が二重になるだけで害はない。
+  const messages: ChatCompletionMessageParam[] = [
+    { role: "system", content: fillTemplate(opts.systemFallback, opts.promptVariables) },
+    ...opts.messages,
+  ];
 
   const bodyExtra: Record<string, unknown> = {};
   const chain = fallbackChain(opts.tier);
@@ -116,6 +126,9 @@ export async function orcaChat(opts: OrcaCallOpts) {
     fallbackModel: h("x-orca-fallback-model"),
     sessionTier: h("x-orca-session-tier"),
     promptRef: h("x-orca-prompt"),
+    // prompt_ref を送ったのに注入されなかった = 登録名が違う。黙って進むと
+    // 気づけないので、記録に残せるようにしておく。
+    promptRefMissed: usePromptRef() && !h("x-orca-prompt"),
     costUsd: typeof usage.cost_usd === "number" ? usage.cost_usd : undefined,
     promptTokens: usage.prompt_tokens,
     completionTokens: usage.completion_tokens,

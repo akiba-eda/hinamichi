@@ -61,6 +61,7 @@ function metaFields(m: OrcaMeta) {
     fallbackLevel: m.fallbackLevel,
     sessionTier: m.sessionTier,
     promptRef: m.promptRef,
+    ...(m.promptRefMissed ? { promptRefMissed: true } : {}),
     latencyMs: m.latencyMs,
     costUsd: m.costUsd,
   };
