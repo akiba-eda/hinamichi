@@ -62,7 +62,12 @@ DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可(�
 2. **Prompts** に 2 本登録し label `production`(本文は `server/lib/agent/prompts.ts` の `TRIAGE_SYSTEM` / `DECIDE_SYSTEM` をコピー。変数 `{{disaster_type}}` `{{area_name}}` をそのまま使う)
    - `hina-triage-system` / `hina-decide-system`(任意で `hina-message-system`)
    - 登録したら `ORCA_USE_PROMPT_REF=true`
-3. **Guardrail**: type PII、stage input、action mask、entities `email, phone`、`credit_card: block` → デモ用 API キーにアタッチ(承認カードから電話番号入りメッセージを送ると `[PHONE]` になる)
+3. **Guardrail**(デモ用 API キーにアタッチ)
+   - 正規表現 `\b\d{2,3}\.\d{4,}\b` / stage input / **block** ── 座標をゲートウェイでも止める
+   - PII `credit_card, iban, bitcoin_address` / stage input / **block**
+   - プロンプトインジェクションの拒否リスト / stage input / **flag**(記録のみ。誤検知で避難案内を止めない)
+   - **電話番号とメールは対象にしない**。伏せると承認カードから家族に連絡先を送れなくなる。
+     アプリ側(`routes/friends/message.ts`)は伏せ字が返っても原文を送る作りにしてあるが、設定としては入れない
 4. (余裕があれば)**Firewall** rule: stage response / tool_name_glob `notify_*` / verdict pending_approval
 
 ### 1.3 API 一覧
