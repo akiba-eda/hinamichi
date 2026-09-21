@@ -28,7 +28,7 @@ cd server && npx tsx --env-file=.env scripts/lastIncident.ts
 ---
 
 ```text
-=== incident snIyVfb6qaWkjvbEeMkS__4LJ25MaVZGbCI6F90wD0SLW9if33 ===
+=== incident snIyVfb6qaWkjvbEeMkS__<uid> ===
 {
   state: 'guiding',
   alertTitle: '地震(最大震度6弱・千葉県猫実二丁目付近)',

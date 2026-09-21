@@ -19,7 +19,7 @@ lib/
 
 ```bash
 flutter pub get
-flutter analyze && flutter test    # 39 件。鍵なしで通ります
+flutter analyze && flutter test    # 49 件。鍵なしで通ります
 flutter run -d <device> --dart-define=API_BASE=https://<project>.vercel.app
 ```
 

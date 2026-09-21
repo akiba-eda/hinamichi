@@ -1,9 +1,12 @@
 ---
 title: "逃げる先を、あなたの代わりに決める — AIに座標を一度も渡さない防災エージェントを作った"
-emoji: "🐕"
-type: "tech"
-topics: ["ai", "flutter", "orcarouter", "aihack", "firebase"]
-published: true
+tags:
+  - AI
+  - Flutter
+  - OrcaRouter
+  - AIHACK
+  - Firebase
+private: false
 ---
 
 ## はじめに
@@ -14,9 +17,23 @@ published: true
 > 家族に安否を届けます。動けないときは、通報を家族に代わって頼んでもらえます。
 > 座標は、AI に一度も渡しません。
 
+![ヒナミチ](https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/hero.png)
+
+![app](https://img.shields.io/badge/app-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
+![server](https://img.shields.io/badge/server-TypeScript_%2F_Vercel_Functions-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![LLM](https://img.shields.io/badge/LLM-OrcaRouter-5B4BE1?style=flat-square)
+![tests](https://img.shields.io/badge/tests-server_75_%7C_app_49_passing-2EA44F?style=flat-square)
+![cost](https://img.shields.io/badge/cost-%240.011_%2F_1件-2EA44F?style=flat-square)
+![license](https://img.shields.io/badge/license-MIT-757575?style=flat-square)
+
+| ふだん | 災害の日 | 判断の記録 | 家族の安否 |
+|:--:|:--:|:--:|:--:|
+| <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/01_home.png" width="180" alt="平時のホーム"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/02_decide.png" width="180" alt="避難先の提案"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/03_agentlog.png" width="180" alt="判断の記録"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/04_friends.png" width="180" alt="家族の安否"> |
+| 雨雲レーダーと<br>周辺の避難所 | 避難先と理由3点<br>（30秒で自動承認） | AIに渡した入力・<br>モデル名・コスト | 確認中→避難中→到着<br>を自動で送る |
+
 [AI HACK 2026](https://x.com/hashtag/AIHACK) の第2回「業務を自律化するAIエージェント」に、**ヒナミチ（HINAMICHI）** という災害ナビゲーターアプリで参加しました。
 
-:::message
+:::note info
 **この記事で書くこと**
 
 - 気象庁の速報から家族への安否連絡までを、人が操作せずに進めるエージェントの作り
@@ -301,7 +318,7 @@ export function assertNoCoordinates(payload: unknown): void {
 
 本人が動けなくなったとき、家族に「代わりに通報してほしい」と頼める機能を入れました。これには本名と住所が要ります。
 
-:::message alert
+:::note warn
 **119番や自治体には繋がりません。** 家族・友人に「代わりに通報してほしい」と
 伝えるだけの機能です。繋がると誤解されると、通報したつもりで誰にも届いていない
 状態を作ってしまうので、アプリの画面でも同じ断りを出しています。
@@ -416,7 +433,7 @@ OrcaRouter は **Zero Data Retention が既定**です。設定項目ではな�
 
 ### 気象庁の警報JSONが4ヶ月止まっていた
 
-:::message alert
+:::note warn
 公式ドキュメントに記載のあるエンドポイントでも、**動いているとは限りません**。
 HTTP 200 が返るので、エラーとしては一切現れませんでした。
 :::

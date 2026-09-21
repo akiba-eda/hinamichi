@@ -12,7 +12,7 @@
 ![app](https://img.shields.io/badge/app-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![server](https://img.shields.io/badge/server-TypeScript_%2F_Vercel_Functions-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![LLM](https://img.shields.io/badge/LLM-OrcaRouter-5B4BE1?style=flat-square)
-![tests](https://img.shields.io/badge/tests-server_66_%7C_app_39_passing-2EA44F?style=flat-square)
+![tests](https://img.shields.io/badge/tests-server_75_%7C_app_49_passing-2EA44F?style=flat-square)
 ![cost](https://img.shields.io/badge/cost-%240.011_%2F_1件-2EA44F?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-757575?style=flat-square)
 
@@ -36,7 +36,7 @@
 | [④ 自律性](#c4) | 監視から到着判定・家族への連絡まで、人が押すボタンは 0 回 | [`agent/service.ts`](server/lib/agent/service.ts) |
 | [① セキュリティ](#c1) | 座標・氏名・連絡先を LLM に一度も渡さない。送信前に機械的に検査する | [`agent/abstraction.ts`](server/lib/agent/abstraction.ts) |
 | [② コストパフォーマンス](#c2) | 2段構えで 1件 $0.011。外部データは全て無料・カード登録不要 | [実測ログ](docs/orca_cost_log.md) |
-| [③ 信頼性・堅牢性](#c3) | LLM が落ちても安全ルールだけで選定して案内を続ける。テスト 66 / 39 件 | [`agent/fallback.ts`](server/lib/agent/fallback.ts) |
+| [③ 信頼性・堅牢性](#c3) | LLM が落ちても安全ルールだけで選定して案内を続ける。テスト 75 / 49 件 | [`agent/fallback.ts`](server/lib/agent/fallback.ts) |
 | [⑤ アイデア・独創性](#c5) | 災害用機能の平時流用ではなく、逆。ふだん開くアプリの仕組みがそのまま効く | [スクリーンショット](docs/screenshots/) |
 
 ### <a id="c4"></a>④ 自律性 — 人が操作しなくても、ここまで進む
@@ -150,7 +150,7 @@ Firebase は Spark、Vercel は Hobby。
 | 圏外 | 位置を端末に溜めて、繋がったら古い順に送る |
 | 逆ジオ・標高・混雑 | 取れなかった項目だけ落として、判断は続ける |
 
-テストは [server 66 件](server/test/) / [app 39 件](app/test/)。バリデータ、フォールバック、データ最小化、
+テストは [server 75 件](server/test/) / [app 49 件](app/test/)。バリデータ、フォールバック、データ最小化、
 ハザードの色判定、経路の残距離、気象XMLの解析を固定しています。
 
 ### <a id="c5"></a>⑤ アイデア・独創性 — ふだん使うアプリが、そのまま防災になる
@@ -219,8 +219,8 @@ Vercel Hobby は 1 デプロイ 12 関数までなので、全 28 ルートを
 
 ```bash
 git clone https://github.com/akiba-eda/hinamichi.git && cd hinamichi
-(cd server && npm install && npm test)        # 66 件
-(cd app && flutter pub get && flutter test)   # 39 件
+(cd server && npm install && npm test)        # 75 件
+(cd app && flutter pub get && flutter test)   # 49 件
 ```
 
 テストは外部 API を叩かないので、**鍵を1つも用意しなくてもここまで通ります**。
