@@ -31,7 +31,7 @@ void main() {
   test('rain nowcast → outlook and line', () {
     const clear = RainNowcast(nowMmh: 0, maxMmh: 0, cloudPct: 8);
     expect(clear.outlook, RainOutlook.clear);
-    expect(weatherLine(clear), contains('快晴'));
+    expect(weatherLine(clear), contains('晴れ'));
 
     const soon = RainNowcast(nowMmh: 0, maxMmh: 3.4, startsInMin: 25);
     expect(soon.outlook, RainOutlook.rainSoon);

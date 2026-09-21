@@ -74,7 +74,9 @@ SenaviMood moodForWeather(RainNowcast? w) => switch (w?.outlook) {
 String lineFor(IncidentState s, {String? shelter, int? walkMin, String? weather, String? custom}) {
   if (custom != null && custom.isNotEmpty && (s == IncidentState.proposing || s == IncidentState.guiding || s == IncidentState.monitoringStay)) return custom;
   return switch (s) {
-    IncidentState.idle => '今日は${weather ?? 'おだやか'}。お出かけ気をつけて',
+    // 平時の実際の一言は weatherLine() が作る(直近60分のレーダーを見ている)。
+    // ここは Widget ギャラリーなどの見本用。1時間より先を語らない点を揃える。
+    IncidentState.idle => weather == null ? '天気は確認中' : '1時間は$weatherみたい',
     IncidentState.assessing => 'ちょっと待ってね、確認してる',
     IncidentState.proposing => '${shelter ?? '避難場所'}へ。徒歩${walkMin ?? '-'}分。一緒に行こう',
     IncidentState.guiding => 'あと${walkMin ?? '-'}分。このまま進もう',

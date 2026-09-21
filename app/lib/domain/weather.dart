@@ -56,16 +56,24 @@ class RainNowcast {
 enum RainOutlook { clear, calm, cloudy, rainSoon, strongRainSoon, rainNow, strongRainNow }
 
 /// 平時のセナヴィの一言。災害時の文面(senavi.dart の lineFor)と同じ口調で揃える。
+///
+/// **言えるのは1時間先までにする。** 雨の有無はレーダー(降水ナウキャスト)の
+/// 0〜60分から出していて、それ以上先のことは見ていない。雲量だけは府県予報
+/// (半日〜1日単位)から補っているので、「晴れてるみたい」と空の話に留めて、
+/// 時間の保証は雨の側だけが持つ。
 String weatherLine(RainNowcast? w) {
-  if (w == null) return '今日はおだやか。お出かけ気をつけて';
+  // 取れなかったときに「今日はおだやか」と言ってはいけない。何も見ていない。
+  if (w == null) return '天気は確認中';
   return switch (w.outlook) {
-    RainOutlook.clear => 'しばらく快晴みたい。お出かけ日和だね',
-    RainOutlook.calm => 'しばらく雨は降らなさそう。いってらっしゃい',
-    RainOutlook.cloudy => '曇ってるけど雨は降らなさそう。いってらっしゃい',
-    RainOutlook.rainSoon => 'あと${w.startsInMin}分くらいで雨が降りそう。傘があると安心',
-    RainOutlook.strongRainSoon => 'あと${w.startsInMin}分くらいで強い雨が降りそう。急ごう',
-    RainOutlook.rainNow => '雨が降ってるよ。足元に気をつけて',
-    RainOutlook.strongRainNow => '強い雨が降ってる。無理せず屋内にいよう',
+    RainOutlook.clear => '1時間は降らなそう。空も晴れてる',
+    RainOutlook.calm => '1時間は降らなそう',
+    RainOutlook.cloudy => '曇ってるけど、1時間は降らなそう',
+    RainOutlook.rainSoon => 'あと${w.startsInMin}分で雨が降りそう',
+    RainOutlook.strongRainSoon => 'あと${w.startsInMin}分で強い雨が降りそう',
+    // 止む時刻が読めるならそれが一番知りたいこと。読めないなら「続く」と言う。
+    RainOutlook.rainNow => w.stopsInMin != null ? 'あと${w.stopsInMin}分でやみそう' : '1時間は雨が続きそう',
+    RainOutlook.strongRainNow =>
+      w.stopsInMin != null ? '強い雨。あと${w.stopsInMin}分でやみそう' : '1時間は強い雨が続きそう',
   };
 }
 
@@ -76,8 +84,7 @@ String weatherLine(RainNowcast? w) {
 String? weatherSub(RainNowcast? w) {
   if (w == null) return null;
   return switch (w.outlook) {
-    RainOutlook.rainNow || RainOutlook.strongRainNow =>
-      '今 ${w.nowMmh.toStringAsFixed(1)}mm/h${w.stopsInMin != null ? ' / あと${w.stopsInMin}分でやみそう' : ''}',
+    RainOutlook.rainNow || RainOutlook.strongRainNow => '今 ${w.nowMmh.toStringAsFixed(1)}mm/h',
     RainOutlook.rainSoon || RainOutlook.strongRainSoon => '60分以内の最大 ${w.maxMmh.toStringAsFixed(1)}mm/h',
     _ => null,
   };
