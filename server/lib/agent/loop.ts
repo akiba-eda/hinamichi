@@ -6,7 +6,7 @@
  */
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { orcaChat, type OrcaMeta } from "../orca.js";
-import { getAreaCode, type AreaInfo } from "../tools/areaCode.js";
+import { getAreaCode, UNKNOWN_AREA, type AreaInfo } from "../tools/areaCode.js";
 import { getHazard, TileCache, type Hazard } from "../tools/hazard.js";
 import { listShelters, type DisasterType } from "../tools/shelters.js";
 import { getCrowd, adjustCrowd } from "../tools/crowd.js";
@@ -92,8 +92,21 @@ export async function runAgent(input: RunInput): Promise<RunOutput> {
   await publishStatus(uid, incidentId, state);
 
   // ---- deterministic context (no LLM) ----
-  const [area, hazardHere] = await Promise.all([getAreaCode(location), getHazard(location, tiles)]);
-  log.add({ kind: "tool_call", toolName: "get_area", chosenBy: "system", audience: "both", title: "現在地の市区町村を特定しました", detail: area.name, payload: { areaName: area.name } });
+  // 逆ジオが落ちても判断は止めない。市区町村名は表示とプロンプト変数にしか使っておらず、
+  // 避難先の選定は座標とハザードだけで成立する。ここで throw を素通りさせると、
+  // 国土地理院が一時的に落ちただけで避難案内そのものが出なくなる。
+  const [area, hazardHere] = await Promise.all([
+    getAreaCode(location).catch(() => UNKNOWN_AREA),
+    getHazard(location, tiles),
+  ]);
+  const areaKnown = area.muniCd !== "";
+  log.add({
+    kind: areaKnown ? "tool_call" : "fallback",
+    toolName: "get_area", chosenBy: "system", audience: "both",
+    title: areaKnown ? "現在地の市区町村を特定しました" : "市区町村が引けませんでした(判断は続けます)",
+    detail: areaKnown ? area.name : "逆ジオが応答しませんでした。避難先の選定は座標とハザードで続けます",
+    payload: { areaName: area.name },
+  });
   log.add({ kind: "tool_call", toolName: "get_hazard", chosenBy: "system", audience: "both", title: "現在地のハザードを確認しました", detail: `浸水: ${hazardHere.floodLabel} / 津波: ${hazardHere.tsunami ? "想定あり" : "なし"} / 土砂: ${hazardHere.landslide ? "警戒区域" : "なし"}`, payload: hazardHere });
 
   // ---- 1. triage (cheap tier) ----

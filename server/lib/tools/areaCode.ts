@@ -12,6 +12,20 @@ export type AreaInfo = {
   name: string; // e.g. "千葉県市川市"
 };
 
+/**
+ * 逆ジオが引けなかったときの入れ物。
+ *
+ * 市区町村コードを空にしてあるのは、**トピック名や警報の絞り込みに使わせない**ため。
+ * 表示用の名前だけを持たせて、避難先の判断(座標とハザードで成立する)は続けさせる。
+ */
+export const UNKNOWN_AREA: AreaInfo = {
+  muniCd: "",
+  jmaClass20: "",
+  prefCd: "",
+  jmaOffice: "",
+  name: "現在地",
+};
+
 /** GSI reverse geocoder → municipality code. No key. */
 export async function getAreaCode(p: LatLng): Promise<AreaInfo> {
   const url = `https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon=${p.lng}&lat=${p.lat}`;
