@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { haversineM, tileXY, walkMinutes, bearingDeg, compass8, type LatLng } from "../geo.js";
 import { getHazard, TileCache, type Hazard } from "./hazard.js";
 import { getElevation } from "./elevation.js";
+import { getWalkDistances } from "./route.js";
 
 export type DisasterType = "earthquake" | "heavy_rain" | "flood" | "tsunami" | "landslide" | "storm_surge";
 
@@ -32,6 +33,8 @@ export type Shelter = {
   elevationM?: number;
   hazard?: Hazard;
   layer: string; // skhb layer that returned it
+  /** distanceM が実際の道のりか(false なら直線距離の目安)。 */
+  routed?: boolean;
 };
 
 const GSI = "https://cyberjapandata.gsi.go.jp/xyz";
@@ -58,7 +61,7 @@ export function shelterId(name: string, lat: number, lng: number): string {
 export async function listShelters(
   origin: LatLng,
   disasterType: DisasterType,
-  opts: { radiusM?: number; limit?: number; enrich?: boolean; cache?: TileCache } = {},
+  opts: { radiusM?: number; limit?: number; enrich?: boolean; road?: boolean; cache?: TileCache } = {},
 ): Promise<Shelter[]> {
   const radiusM = opts.radiusM ?? 2500;
   const limit = opts.limit ?? 8;
@@ -92,7 +95,28 @@ export async function listShelters(
     });
   }
   out.sort((a, b) => a.distanceM - b.distanceM);
-  const top = out.slice(0, limit);
+  // 直線距離で絞ってから道のりを引く。迂回で順位が入れ替わりうるので、
+  // limit より多めに残してから並べ直す。
+  const top = out.slice(0, Math.min(out.length, limit * 2));
+
+  // 候補ごとに迂回率が違う(南行徳では 1.22〜1.66 倍)ため、直線距離のままだと
+  // 「直線では近いが橋を回ると遠い」候補が上に来てしまう。matrix で 1 回に
+  // まとめて実距離へ差し替える。取れなければ直線のまま進む(案内は止めない)。
+  if (opts.road !== false) {
+    const roads = await getWalkDistances(origin, top.map((s) => ({ lat: s.lat, lng: s.lng })));
+    if (roads) {
+      top.forEach((s, i) => {
+        const m = roads[i]!;
+        if (m < 0) return;
+        s.distanceM = m;
+        s.walkMin = walkMinutes(m);
+        s.routed = true;
+      });
+      top.sort((a, b) => a.distanceM - b.distanceM);
+    }
+  }
+  top.splice(limit);
+
   if (opts.enrich !== false) {
     const cache = opts.cache ?? new TileCache();
     await Promise.all(

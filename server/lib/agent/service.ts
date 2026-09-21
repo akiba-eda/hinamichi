@@ -4,7 +4,8 @@ import { db, COL, FieldValue } from "../firebase.js";
 import { HttpError } from "../http.js";
 import { runAgent, type RunOutput } from "./loop.js";
 import { adjustCrowd } from "../tools/crowd.js";
-import { haversineM } from "../geo.js";
+import { haversineM, walkMinutes } from "../geo.js";
+import { remainingAlongRoute } from "../tools/route.js";
 import { incidentRef, notifyFriends, publishStatus, setIncident, IncidentLog } from "./store.js";
 import { settledCost } from "../orca.js";
 import type { AlertDoc, IncidentState, LocationSource } from "./types.js";
@@ -56,7 +57,7 @@ export async function reselect(opts: { uid: string; incidentId: string; location
   // Re-selection keeps the user in guiding (no new approval needed — same decision scope)
   if (result.state === "proposing") {
     await setIncident(opts.incidentId, { state: "guiding", startedAt: d.startedAt ?? new Date().toISOString() });
-    await publishStatus(opts.uid, opts.incidentId, "guiding", result.shelter?.name, result.userMessage);
+    await publishStatus(opts.uid, opts.incidentId, "guiding", result.shelter);
     await notifyFriends(opts.uid, "ヒナミチ", `行き先が変わりました: ${result.shelter?.name ?? ""}`, { type: "status", state: "evacuating", incidentId: opts.incidentId });
     result.state = "guiding";
   }
@@ -107,7 +108,7 @@ export async function applyAction(uid: string, incidentId: string, action: Actio
       break;
   }
   await log.flush();
-  const pub = await publishStatus(uid, incidentId, state, d.shelter?.name, d.userMessage);
+  const pub = await publishStatus(uid, incidentId, state, d.shelter);
   if (friendMsg) await notifyFriends(uid, "ヒナミチ", friendMsg, { type: "status", state: pub, incidentId });
   if (state === "arrived" || state === "safe_zone" || state === "closed") void settleIncidentCost(incidentId).catch(() => {});
   return { state };
@@ -133,8 +134,11 @@ export async function updatePosition(uid: string, incidentId: string, p: { lat: 
   const d = snap.data() as any;
   if (d.uid !== uid) throw new HttpError(403, "not your incident", "forbidden");
   if (!["guiding", "fallback_guiding", "reselecting"].includes(d.state) || !d.shelter) return { state: d.state as IncidentState, distanceM: null };
+  // 到着判定は避難場所までの直線距離(ジオフェンス)、残り時間は経路に沿った長さ。
+  // 役割が違うので分けている。
   const dist = haversineM(p, d.shelter);
-  const remainingMin = Math.max(0, Math.round(dist / 80));
+  const along = Array.isArray(d.route?.points) ? remainingAlongRoute(d.route.points, p) : null;
+  const remainingMin = Math.max(0, walkMinutes(along ?? dist));
   await incidentRef(incidentId).set({ remainingMin, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   if (dist <= 100) {
     const r = await applyAction(uid, incidentId, "arrived", "geofence");

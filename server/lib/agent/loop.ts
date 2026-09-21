@@ -11,7 +11,7 @@ import { getHazard, TileCache, type Hazard } from "../tools/hazard.js";
 import { listShelters, type DisasterType } from "../tools/shelters.js";
 import { getCrowd, adjustCrowd } from "../tools/crowd.js";
 import { getRoute } from "../tools/route.js";
-import { type LatLng } from "../geo.js";
+import { walkMinutes, type LatLng } from "../geo.js";
 import { abstractCandidates, assertNoCoordinates, buildCandidates } from "./abstraction.js";
 import { DECIDE_SYSTEM, PROMPT_DECIDE, PROMPT_TRIAGE, TRIAGE_SYSTEM, decideTools, triageTools } from "./prompts.js";
 import { validateLetter } from "./validator.js";
@@ -74,7 +74,20 @@ export async function runAgent(input: RunInput): Promise<RunOutput> {
   let state: IncidentState = "assessing";
 
   log.info("セナヴィが状況を確認しはじめました", `位置情報の取得元: ${labelSource(input.locationSource)}。座標はサーバー内でのみ使い、保存もAIへの送信もしません。`, "both");
-  await setIncident(incidentId, { uid, alertId: alert.id, alertType: alert.type, alertTitle: alert.title, state, locationSource: input.locationSource, createdAt: new Date().toISOString() });
+  // 震度と警報名はアプリ側に渡す。強い揺れや津波警報のときは、避難先を出す前に
+  // 「まず身の安全」を伝える必要があり、その判断材料になる。
+  await setIncident(incidentId, {
+    uid,
+    alertId: alert.id,
+    alertType: alert.type,
+    alertTitle: alert.title,
+    intensity: alert.intensity ?? null,
+    intensityLabel: alert.intensityLabel ?? null,
+    warnings: alert.warnings ?? [],
+    state,
+    locationSource: input.locationSource,
+    createdAt: new Date().toISOString(),
+  });
   await publishStatus(uid, incidentId, state);
 
   // ---- deterministic context (no LLM) ----
@@ -189,6 +202,14 @@ export async function runAgent(input: RunInput): Promise<RunOutput> {
   if (input.previousShelterId && input.previousShelterId !== s.id) await adjustCrowd(input.previousShelterId, -1);
   await adjustCrowd(s.id, +1, s.name);
 
+  // 候補一覧の距離は matrix、地図に描く線は directions と別々のAPIから来るので、
+  // 数十mずれる。ユーザーには「線の長さ = 徒歩◯分」に見えてほしいので、
+  // 実際に引けた経路があればそちらに合わせる。
+  if (route.provider === "ors") {
+    s.distanceM = route.distanceM;
+    s.walkMin = walkMinutes(route.distanceM);
+  }
+
   const userMessage = decision?.userMessage && validatedBy !== "fallback" ? decision.userMessage : `${s.name}へ。徒歩${s.walkMin}分。一緒に行こう`;
   const shelterOut = { id: s.id, name: s.name, address: s.address, lat: s.lat, lng: s.lng, walkMin: s.walkMin, distanceM: s.distanceM, elevationM: s.elevationM };
   await finish(state, { reasons, userMessage, validatedBy, shelter: shelterOut, route, candidates: candidates.map((c) => ({ id: c.shelter.id, name: c.shelter.name, letter: c.letter, walkMin: c.shelter.walkMin, crowdPct: c.crowd.pct })) });
@@ -202,8 +223,9 @@ export async function runAgent(input: RunInput): Promise<RunOutput> {
       setIncident(incidentId, { state: st, ...extra, cost: { totalUsd: log.totalCostUsd, llmCalls } }),
       log.flush(),
     ]);
-    const shelterName = (extra.shelter as any)?.name as string | undefined;
-    const pub = await publishStatus(uid, incidentId, st, shelterName, extra.userMessage as string);
+    const sh = extra.shelter as { name?: string; lat?: number; lng?: number } | undefined;
+    const shelterName = sh?.name;
+    const pub = await publishStatus(uid, incidentId, st, sh);
     if (st === "proposing" || st === "fallback_guiding") {
       await notifyFriends(uid, "ヒナミチ", `${await displayNameOf(uid)}さんは避難を開始しようとしています${shelterName ? `(${shelterName})` : ""}`, { type: "status", state: pub, incidentId });
     }
