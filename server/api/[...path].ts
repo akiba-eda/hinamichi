@@ -21,6 +21,7 @@ import meRegister from "../lib/routes/me/register.js";
 import meStatus from "../lib/routes/me/status.js";
 import meetupEnd from "../lib/routes/meetup/end.js";
 import meetupStart from "../lib/routes/meetup/start.js";
+import routeWalk from "../lib/routes/route.js";
 import senaviAsk from "../lib/routes/senavi/ask.js";
 import sheltersNearby from "../lib/routes/shelters/nearby.js";
 import sosClose from "../lib/routes/sos/close.js";
@@ -62,6 +63,7 @@ const routes: Record<string, Handler> = {
   "me/status": meStatus,
   "meetup/end": meetupEnd,
   "meetup/start": meetupStart,
+  "route": routeWalk,
   "senavi/ask": senaviAsk,
   "shelters/nearby": sheltersNearby,
   "sos/close": sosClose,

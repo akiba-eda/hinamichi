@@ -125,7 +125,7 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
                 indicatorColor: HinaColors.mist,
                 destinations: [
                   _tab(HinaIcon.home, 'ホーム'),
-                  _tab(HinaIcon.map, 'マップ'),
+                  _tab(HinaIcon.map, '近隣情報'),
                   _tab(HinaIcon.friends, '友だち'),
                   _tab(HinaIcon.settings, '設定'),
                 ],

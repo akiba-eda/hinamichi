@@ -397,6 +397,24 @@ final revealedEmergencyProvider = StreamProvider.family<Map<String, dynamic>?, S
       .handleError((Object e) => debugPrint('emergency unavailable: $e'));
 });
 
+/// 合流地点までの徒歩経路。避難経路と同じ `getRoute` をサーバー側で通すので、
+/// 描かれる線も徒歩分も避難時と同じ出し方になる。
+final meetupRouteProvider = FutureProvider<RouteInfo?>((ref) async {
+  final m = ref.watch(meetupProvider);
+  final here = ref.watch(locationProvider)?.point;
+  if (m == null || here == null) return null;
+  // モックモードでも本物の経路を引く。ここは状態を持たない2点間の計算なので、
+  // 仮データを作る意味がない ── むしろモックで試したときだけ道案内が出ない方が
+  // 混乱する(実際に「道の線が出ない」と言われた)。
+  try {
+    return RouteInfo.fromJson(await ref.read(apiProvider).walkRoute(from: here, to: m.point));
+  } catch (e) {
+    // 引けなくても旗は出る。道案内が無いだけで合流そのものは成立する。
+    debugPrint('meetup route unavailable: $e');
+    return null;
+  }
+});
+
 // ------------------------------------------------------------------ 雨雲レーダー
 /// 地図に雨雲を重ねるか。ホームのボタンで切り替える。
 final rainOverlayProvider = StateProvider<bool>((_) => false);

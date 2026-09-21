@@ -221,8 +221,9 @@ class _FriendDetail extends ConsumerWidget {
     } else {
       ref.read(apiProvider).startMeetup(name: name, lat: point.latitude, lng: point.longitude, memberUids: [f.entry.uid]);
     }
+    // ホームへ送る。合流バナーと道案内が出ているのはホーム。
     ref.read(mapFocusProvider.notifier).state = point;
-    ref.read(selectedTabProvider.notifier).state = 1;
+    ref.read(selectedTabProvider.notifier).state = 0;
     Navigator.of(context).pop();
   }
 

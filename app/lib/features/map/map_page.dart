@@ -17,9 +17,14 @@ import '../shelter/shelter_detail_page.dart';
 
 /// マップ(デザイン書 シート3 のボトムナビ / 設計書 §17.3)。
 ///
-/// ホームは「いま何が起きているか」を地図の上に重ねる画面なので、こちらは
-/// 平時に周辺の避難場所を一覧で見比べるための画面にしている。上が地図、下が
-/// 距離順のリスト。タップすると 02 避難所詳細へ。
+/// 近隣情報。
+///
+/// ホームは「いま何が起きているか」と日常のやりとりの場所。こちらは
+/// **平時に、自分の土地のことを知るための画面**にしている ── 自宅が浸水想定に
+/// 入っているか、近くのどこへ逃げればいいかを、何も起きていない日に眺められる。
+///
+/// 友だち・合流・雨雲はホームに集約したので、ここには出さない。
+/// 同じものが2画面にあると、どちらを見ればいいのか分からなくなる。
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
   @override
@@ -55,7 +60,7 @@ class _MapPageState extends ConsumerState<MapPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('マップ'),
+        title: const Text('近隣情報'),
         actions: [
           IconButton(
             tooltip: '現在地',
@@ -70,7 +75,7 @@ class _MapPageState extends ConsumerState<MapPage> {
       ),
       body: Column(children: [
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.38,
+          height: MediaQuery.of(context).size.height * 0.42,
           child: Stack(children: [
             Positioned.fill(
               child: HinaMap(
@@ -83,9 +88,6 @@ class _MapPageState extends ConsumerState<MapPage> {
                 showLandslide: demo.showLandslide,
                 mood: SenaviMood.normal,
                 basemap: ref.watch(basemapProvider),
-                friends: ref.watch(friendsOnMapProvider),
-                onFriendTap: (f) => showFriendDetail(context, f),
-                meetup: ref.watch(meetupProvider),
                 onShelterTap: _open,
               ),
             ),
@@ -107,6 +109,13 @@ class _MapPageState extends ConsumerState<MapPage> {
             ),
           ]),
         ),
+        // 何も起きていない日に開く画面なので、まず「自分の場所はどうなのか」を出す。
+        // 避難場所の一覧だけだと、自分に関係のある情報にならない。
+        if (nearby.value?.hazard != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(HinaSpace.m, HinaSpace.s, HinaSpace.m, 0),
+            child: _HereHazard(nearby.value!.hazard!),
+          ),
         Expanded(
           child: nearby.when(
             loading: () => const Center(child: CircularProgressIndicator(color: HinaColors.sky)),
@@ -191,4 +200,37 @@ class _Empty extends StatelessWidget {
           ]),
         ),
       );
+}
+
+/// いまいる場所のハザード。平時にこれを見て「うちは浸水想定なんだ」と
+/// 知ってもらうのが、この画面を置いている理由。
+class _HereHazard extends StatelessWidget {
+  final HazardHere hz;
+  const _HereHazard(this.hz);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final risks = <String>[
+      if (hz.flood > 0) '浸水 ${hz.floodLabel}',
+      if (hz.tsunami > 0) '津波想定あり',
+      if (hz.landslide) '土砂災害警戒区域',
+    ];
+    final safe = risks.isEmpty;
+    return HinaCard(
+      color: safe ? HinaColors.surface : HinaColors.alert.withValues(alpha: 0.08),
+      padding: const EdgeInsets.all(12),
+      child: Row(children: [
+        Icon(safe ? Icons.check_circle_outline : Icons.info_outline,
+            color: safe ? HinaColors.stArrived : HinaColors.alert, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('いまいる場所', style: t.bodySmall?.copyWith(color: HinaColors.inkSub)),
+            Text(safe ? '想定区域には入っていません' : risks.join(' / '), style: t.titleMedium),
+          ]),
+        ),
+      ]),
+    );
+  }
 }

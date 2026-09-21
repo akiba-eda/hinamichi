@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'config.dart';
 
 class ApiException implements Exception {
@@ -57,6 +58,15 @@ class ApiClient {
   /// 警報を自分宛てに絞るための市区町村コードを得るのが目的。
   Future<Map<String, dynamic>> myArea({required double lat, required double lng}) =>
       post('/api/me/area', {'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 15));
+
+  /// 2点間の徒歩経路。合流地点までの道案内に使う。
+  /// 避難経路と同じ仕組みを通るので、線も徒歩分も避難時と同じ出し方になる。
+  Future<Map<String, dynamic>> walkRoute({required LatLng from, required LatLng to}) => post('/api/route', {
+        'fromLat': from.latitude,
+        'fromLng': from.longitude,
+        'toLat': to.latitude,
+        'toLng': to.longitude,
+      }, timeout: const Duration(seconds: 20));
 
   /// セナヴィに聞く。答えられる材料は直近60分のレーダーと今日・明日の予報、
   /// それと現在地のハザードだけ。**座標は LLM に渡らない**(サーバーが地名と

@@ -131,7 +131,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             center: here,
             shelters: shelters,
             selected: inc?.shelter,
-            route: inc?.route?.points ?? const [],
+            // 災害中は避難経路。平時は合流地点までの道案内を出す。
+            route: inc?.route?.points ?? ref.watch(meetupRouteProvider).value?.points ?? const [],
             showFlood: demo.showFlood,
             showTsunami: demo.showTsunami || inc?.type == DisasterType.tsunami,
             showLandslide: demo.showLandslide,
@@ -304,7 +305,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       final sub = weatherSub(ref.watch(weatherProvider).value) ?? hazardSub;
       // 吹き出しから聞けるようにする。何を聞けるかは開いた先で例を出す
       // ── 入口が無いと、聞けること自体に気づかれない。
-      body = HinaCard(
+      final meetup = ref.watch(meetupProvider);
+      body = Column(mainAxisSize: MainAxisSize.min, children: [
+        if (meetup != null) ...[
+          MeetupBanner(meetup: meetup, focusOnTap: false),
+          const SizedBox(height: 8),
+        ],
+        HinaCard(
         onTap: () => showAskSheet(context),
         child: Column(children: [
           SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: sub),
@@ -315,7 +322,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             Text('セナヴィに聞く', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: HinaColors.inkSub)),
           ]),
         ]),
-      );
+        ),
+      ]);
     }
     return SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.s), child: body));
   }

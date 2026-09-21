@@ -106,7 +106,7 @@ class FriendsPage extends ConsumerWidget {
             offset: const Offset(0, -18),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: HinaSpace.m),
-              child: _MeetupBanner(meetup: ref.watch(meetupProvider)!),
+              child: MeetupBanner(meetup: ref.watch(meetupProvider)!),
             ),
           ),
         // 到着/出発のできごと。新しいものから数件。
@@ -328,44 +328,6 @@ class _FriendCard extends ConsumerWidget {
         context,
         FriendOnMap(entry: f, status: status, location: location ?? FriendLocation(point: const LatLng(0, 0), at: DateTime.fromMillisecondsSinceEpoch(0))),
       ),
-    );
-  }
-}
-
-/// 進行中の合流。ここからマップへ飛べる。
-class _MeetupBanner extends ConsumerWidget {
-  final Meetup meetup;
-  const _MeetupBanner({required this.meetup});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = Theme.of(context).textTheme;
-    final here = ref.watch(locationProvider)?.point;
-    final eta = here == null ? null : Meetup.walkMinutes(here, meetup.point);
-    final c = meetup.fromIncident ? HinaColors.alert : HinaColors.stArrived;
-    return HinaCard(
-      color: c.withValues(alpha: 0.10),
-      onTap: () {
-        ref.read(mapFocusProvider.notifier).state = meetup.point;
-        ref.read(selectedTabProvider.notifier).state = 1;
-      },
-      child: Row(children: [
-        Icon(Icons.handshake_outlined, color: c),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(meetup.fromIncident ? '避難先で合流' : '待ち合わせ中', style: t.bodySmall),
-            Text(meetup.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (eta != null) Text('あなたは徒歩 $eta分', style: t.bodySmall),
-          ]),
-        ),
-        TextButton(
-          onPressed: () => ref.read(mockModeProvider)
-              ? ref.read(mockBackendProvider.notifier).endMeetup()
-              : ref.read(apiProvider).endMeetup(meetup.id),
-          child: const Text('やめる'),
-        ),
-      ]),
     );
   }
 }

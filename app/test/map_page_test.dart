@@ -19,20 +19,18 @@ void main() {
 
   // マップ画面が使うのは nearbyProvider だけ。タイルはテスト環境で引けないので、
   // 「開いたのにリストが空」を検出できれば目的を果たす。
-  testWidgets('マップは周辺の避難場所を件数付きで並べる', (tester) async {
+  testWidgets('近隣情報は周辺の避難場所を件数付きで並べる', (tester) async {
     final shelters = MockBackend.sheltersAround(_here);
     await tester.pumpWidget(ProviderScope(
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: shelters, hazard: MockBackend.hazardHere)),
-        // フレンドと合流は Firestore を触るので、この画面のテストでは固定する。
-        friendsOnMapProvider.overrideWith((ref) => const <FriendOnMap>[]),
-        meetupProvider.overrideWith((ref) => null),
+        // 近隣情報はフレンド・合流を出さない(ホームに集約した)ので上書き不要。
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));
     await tester.pump();
 
-    expect(find.text('マップ'), findsOneWidget);
+    expect(find.text('近隣情報'), findsOneWidget);
     expect(find.text('周辺の避難場所'), findsOneWidget);
     expect(find.text('${shelters.length}件'), findsOneWidget);
     // ListView は見えている分しか組み立てないので、先頭だけ確かめる。
@@ -45,8 +43,6 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: <ShelterInfo>[], hazard: null)),
-        friendsOnMapProvider.overrideWith((ref) => const <FriendOnMap>[]),
-        meetupProvider.overrideWith((ref) => null),
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));
