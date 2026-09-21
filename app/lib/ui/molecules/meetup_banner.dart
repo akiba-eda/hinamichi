@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/hina_colors.dart';
+import '../../app/theme/hina_theme.dart';
 import '../../domain/social.dart';
 import '../../mock/mock_backend.dart';
 import '../../state/providers.dart';
@@ -29,35 +30,54 @@ class MeetupBanner extends ConsumerWidget {
     final min = route != null ? (route.durationS / 60).ceil() : (here == null ? null : Meetup.walkMinutes(here, meetup.point));
     final c = meetup.fromIncident ? HinaColors.alert : HinaColors.stArrived;
 
-    return HinaCard(
-      color: c.withValues(alpha: 0.10),
-      onTap: !focusOnTap
-          ? null
-          : () {
-              ref.read(mapFocusProvider.notifier).state = meetup.point;
-              ref.read(selectedTabProvider.notifier).state = 0;
-            },
-      child: Row(children: [
-        Icon(Icons.handshake_outlined, color: c),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(meetup.fromIncident ? '避難先で合流' : '待ち合わせ中', style: t.bodySmall),
-            Text(meetup.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (min != null)
-              Text(
-                route != null ? '徒歩 $min分 (約${route.distanceM}m)' : '徒歩 $min分 (直線の目安)',
-                style: t.bodySmall,
+    // 地図の上に置くので背景は不透明にする。透かすと下の地名が文字に重なって
+    // 読めない。色は左の帯とアイコンだけで出し、平時(紫)と災害時(赤)を分ける。
+    return Container(
+      decoration: BoxDecoration(
+        color: HinaColors.surface,
+        borderRadius: BorderRadius.circular(HinaRadius.card),
+        boxShadow: HinaShadow.card,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: !focusOnTap
+              ? null
+              : () {
+                  ref.read(mapFocusProvider.notifier).state = meetup.point;
+                  ref.read(selectedTabProvider.notifier).state = 0;
+                },
+          child: IntrinsicHeight(
+            child: Row(children: [
+              Container(width: 4, color: c),
+              const SizedBox(width: 12),
+              Icon(Icons.handshake_outlined, color: c),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(meetup.fromIncident ? '避難先で合流' : '待ち合わせ中', style: t.bodySmall),
+                    Text(meetup.name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (min != null)
+                      Text(
+                        route != null ? '徒歩 $min分 (約${route.distanceM}m)' : '徒歩 $min分 (直線の目安)',
+                        style: t.bodySmall,
+                      ),
+                  ]),
+                ),
               ),
-          ]),
+              TextButton(
+                onPressed: () => ref.read(mockModeProvider)
+                    ? ref.read(mockBackendProvider.notifier).endMeetup()
+                    : ref.read(apiProvider).endMeetup(meetup.id),
+                child: const Text('やめる'),
+              ),
+            ]),
+          ),
         ),
-        TextButton(
-          onPressed: () => ref.read(mockModeProvider)
-              ? ref.read(mockBackendProvider.notifier).endMeetup()
-              : ref.read(apiProvider).endMeetup(meetup.id),
-          child: const Text('やめる'),
-        ),
-      ]),
+      ),
     );
   }
 }

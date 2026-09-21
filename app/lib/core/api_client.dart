@@ -68,11 +68,12 @@ class ApiClient {
         'toLng': to.longitude,
       }, timeout: const Duration(seconds: 20));
 
-  /// セナヴィに聞く。答えられる材料は直近60分のレーダーと今日・明日の予報、
-  /// それと現在地のハザードだけ。**座標は LLM に渡らない**(サーバーが地名と
-  /// 天気に変換してから渡す)。
-  Future<Map<String, dynamic>> ask({required String question, required double lat, required double lng}) =>
-      post('/api/senavi/ask', {'question': question, 'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 25));
+  /// セナヴィに聞く。**決まったコマンドだけ**を受け付ける。
+  ///
+  /// 自由な問いを許すと、LLM は実在ドメインの下に存在しないパスを出典として
+  /// 書く(実測で4本中4本が404)。答えられる範囲と出典をこちらが用意する形にした。
+  Future<Map<String, dynamic>> ask({required String command, required double lat, required double lng}) =>
+      post('/api/senavi/ask', {'command': command, 'lat': lat, 'lng': lng}, timeout: const Duration(seconds: 25));
 
   Future<Map<String, dynamic>> nearby({required double lat, required double lng, String type = 'earthquake'}) =>
       post('/api/shelters/nearby', {'lat': lat, 'lng': lng, 'type': type}, timeout: const Duration(seconds: 30));

@@ -183,8 +183,9 @@ async function cloudPct(p: LatLng): Promise<number | null> {
 /** 今日・明日の見通し。レーダーの60分では答えられない問いのために引く。 */
 export type Outlook = {
   areaName: string;
-  today?: { text: string; pops: Array<{ from: string; pct: number }> };
-  tomorrow?: { text: string };
+  /** 「今日」「明日」だけだと、いつの話か読み手に伝わらない。日付を持たせる。 */
+  today?: { date: string; text: string; pops: Array<{ from: string; pct: number }> };
+  tomorrow?: { date: string; text: string };
 };
 
 /**
@@ -216,12 +217,15 @@ export async function getOutlook(p: LatLng): Promise<Outlook | null> {
     const todayPops = popTimes
       .map((t, i) => ({ from: t, pct: Number(pops[i] ?? -1) }))
       .filter((x) => x.pct >= 0 && x.from.slice(0, 10) === today)
-      .map((x) => ({ from: x.from.slice(11, 16), pct: x.pct }));
+      // 「18:00から」ではなく「9/22 18:00から」と言えるように日付ごと渡す。
+      .map((x) => ({ from: `${Number(x.from.slice(5, 7))}/${Number(x.from.slice(8, 10))} ${x.from.slice(11, 16)}`, pct: x.pct }));
+
+    const md = (iso?: string) => (iso ? `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}` : "");
 
     return {
       areaName: (await getPlaceName(p)) ?? area.name,
-      ...(texts[0] ? { today: { text: texts[0].replace(/[\s\u3000]+/g, ""), pops: todayPops } } : {}),
-      ...(texts[1] ? { tomorrow: { text: texts[1].replace(/[\s\u3000]+/g, "") } } : {}),
+      ...(texts[0] ? { today: { date: md(times[0]), text: texts[0].replace(/[\s\u3000]+/g, ""), pops: todayPops } } : {}),
+      ...(texts[1] ? { tomorrow: { date: md(times[1]), text: texts[1].replace(/[\s\u3000]+/g, "") } } : {}),
       ...(times.length ? {} : {}),
     };
   } catch {
