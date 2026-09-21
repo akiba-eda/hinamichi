@@ -56,19 +56,40 @@ function muniNames(): Promise<Record<string, string> | null> {
 }
 
 /**
+ * 位置を丸めた升目。小数3桁 ≒ 110m 四方。
+ *
+ * 区市町村名はこの粒度では変わらないので、同じ升目なら逆ジオを引き直さない。
+ * 境界をまたぐときだけ最大 110m ぶん古い区名が出うるが、「最後にいた場所」を
+ * 区市町村で見せる用途では許容できる誤差。
+ */
+export function placeCell(p: LatLng): string {
+  return `${p.lat.toFixed(3)},${p.lng.toFixed(3)}`;
+}
+
+const placeCache = new Map<string, string | null>();
+
+/**
  * フレンドに見せる地名。「東京都足立区」まで。
  * 市区町村名が引けなければ都道府県だけ返す(空文字は返さない)。
+ *
+ * 位置は 50m 動くたびに届く。毎回逆ジオを引くと同じ答えを1日に何百回も
+ * 取りに行くことになるので、升目単位で覚えておく。
  */
 export async function getPlaceName(p: LatLng): Promise<string | null> {
+  const cell = placeCell(p);
+  if (placeCache.has(cell)) return placeCache.get(cell)!;
+  let name: string | null = null;
   try {
     const area = await getAreaCode(p);
     const pref = PREF[area.prefCd] ?? "";
     const muni = (await muniNames())?.[area.muniCd] ?? "";
-    const name = `${pref}${muni}`;
-    return name || null;
+    name = `${pref}${muni}` || null;
   } catch {
-    return null;
+    return null; // 一時的な失敗を覚え込まない
   }
+  if (placeCache.size > 2000) placeCache.clear();
+  placeCache.set(cell, name);
+  return name;
 }
 
 export const PREF: Record<string, string> = {

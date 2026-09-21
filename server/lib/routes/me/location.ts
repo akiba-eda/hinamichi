@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { route, body } from "../../http.js";
 import { db, COL, FieldValue, Timestamp } from "../../firebase.js";
-import { getPlaceName } from "../../tools/areaCode.js";
+import { getPlaceName, placeCell } from "../../tools/areaCode.js";
 
 const Body = z.object({
   lat: z.number(),
@@ -31,13 +31,17 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
   if (prevAt && prevAt.getTime() >= at.getTime()) return { ok: true, applied: false, reason: "older" };
 
   // 座標そのものは端末に出さない。フレンドに見せるのは区市町村まで(設計書 §119)。
-  const areaName = await getPlaceName(b);
+  // 同じ升目に留まっている間は引き直さない ── 位置は 50m 動くたびに届くので、
+  // 毎回引くと同じ区名を1日に何百回も取りに行くことになる。
+  const cell = placeCell(b);
+  const areaName = prev?.areaCell === cell && prev?.areaName ? (prev.areaName as string) : await getPlaceName(b);
 
   await ref.set(
     {
       lat: b.lat,
       lng: b.lng,
       at: Timestamp.fromDate(at),
+      areaCell: cell,
       ...(b.accuracyM != null ? { accuracyM: b.accuracyM } : {}),
       ...(b.batteryPct != null ? { batteryPct: b.batteryPct } : {}),
       ...(areaName ? { areaName } : {}),
