@@ -9,19 +9,13 @@ tags:
 private: false
 ---
 
-## はじめに
-
-> **逃げる先を、あなたの代わりに決める。**
->
-> 災害が起きたら、AI ナビゲーター「セナヴィ」が避難先を選んで道案内し、
-> 家族に安否を届けます。動けないときは、通報を家族に代わって頼んでもらえます。
-> 座標は、AI に一度も渡しません。
-
-:::note warn
-本アプリは AI HACK 2026 の試作です。実際の災害での利用を想定しておらず、避難の判断は自治体の避難指示とご自身の状況を優先してください。
-:::
-
 ![ヒナミチ](https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/hero.png)
+
+### 逃げる先を、あなたの代わりに決める。
+
+災害が起きたら、AI ナビゲーター「セナヴィ」が避難先を選んで道案内し、家族に安否を届けます。動けないときは、通報を家族に代わって頼めます。
+
+**座標は、AI に一度も渡しません。**
 
 ![app](https://img.shields.io/badge/app-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![server](https://img.shields.io/badge/server-TypeScript_%2F_Vercel_Functions-3178C6?style=flat-square&logo=typescript&logoColor=white)
@@ -35,22 +29,24 @@ private: false
 | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/01_home.png" width="180" alt="平時のホーム"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/02_decide.png" width="180" alt="避難先の提案"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/03_agentlog.png" width="180" alt="判断の記録"> | <img src="https://raw.githubusercontent.com/akiba-eda/hinamichi/main/docs/screenshots/04_friends.png" width="180" alt="家族の安否"> |
 | 雨雲レーダーと<br>周辺の避難所 | 避難先と理由3点<br>（30秒で自動承認） | AIに渡した入力・<br>モデル名・コスト | 確認中→避難中→到着<br>を自動で送る |
 
-[AI HACK 2026](https://x.com/hashtag/AIHACK) の第2回「業務を自律化するAIエージェント」に、**ヒナミチ（HINAMICHI）** という災害ナビゲーターアプリで参加しました。
+**ふだんは、雨雲レーダーと位置共有のアプリです。**
+出かける前に雨を確かめ、友だちと待ち合わせ、家族が帰ったのを知る。災害の日だけ開くアプリは、その日も開かれません。だから、ふだん開く理由の方を本体にしました。
 
-:::note info
-**この記事で書くこと**
+> [AI HACK 2026](https://x.com/hashtag/AIHACK) #2「業務を自律化するAIエージェント」応募作品。コードは全部公開しています → https://github.com/akiba-eda/hinamichi
+>
+> **本アプリは試作です。** 実際の災害での利用を想定しておらず、避難の判断は自治体の避難指示とご自身の状況を優先してください。
 
-- 気象庁の速報から家族への安否連絡までを、人が操作せずに進めるエージェントの作り
-- **AIに座標を一度も渡さずに**「どこへ逃げるか」を決めさせる方法
-- OrcaRouter の2段構え（1件 $0.011）とゲートウェイ側の検査
-- **公式の気象データが4ヶ月止まっていた**話と、その見つけ方
+## 審査基準への回答
 
-コードは全部公開しています → https://github.com/akiba-eda/hinamichi
-:::
+| 審査基準 | ヒナミチの答え | 記事の節 |
+|---|---|---|
+| ④ 自律性 | 監視から到着判定・家族への連絡まで、人が押すボタンは 0 回 | 自律性：人が操作しない範囲 |
+| ① セキュリティ | 座標・氏名・連絡先を LLM に一度も渡さない。送信前に機械的に検査する | AIに何を渡していないか |
+| ② コストパフォーマンス | 2段構えで 1件 $0.011。外部データは全て無料・カード登録不要 | OrcaRouterの使い方 |
+| ③ 信頼性・堅牢性 | LLM が落ちても安全ルールだけで選定して案内を続ける。テスト 75 / 49 件 | フォールバック設計 |
+| ⑤ アイデア・独創性 | 災害用機能の平時流用ではなく、逆。ふだん開くアプリの仕組みがそのまま効く | まず、ふだん使えるアプリにする |
 
-LLM の呼び出しは全て [OrcaRouter](https://www.orcarouter.ai/ja) 経由です。複数プロバイダを1つのAPIで扱えるゲートウェイで、ルーティング・フォールバック・コスト照合を任せています。
-
-うまくいった話だけでなく、**実装してから外した機能**についても書きました。そちらの方が役に立つと思います。
+LLM の呼び出しは全て [OrcaRouter](https://www.orcarouter.ai/ja) 経由です。複数プロバイダを1つのAPIで扱えるゲートウェイで、ルーティング・フォールバック・コスト照合を任せています。うまくいった話だけでなく、**実装してから外した機能**についても書きました。
 
 ## 何を作ったか
 
