@@ -85,6 +85,14 @@ class AboutPage extends StatelessWidget {
               '届くのは最後に受け取った位置で、いつの時点かを必ず添えて表示します。',
         ),
 
+        const SectionHeader('この案内について'),
+        const _Item(
+          title: '参考情報です',
+          body: '本アプリは AI HACK 2026 の試作です。実際の災害での利用を想定しておらず、'
+              '避難の判断は自治体の避難指示とご自身の状況を優先してください。'
+              '避難場所・ハザード・経路は公的データから引いていますが、現地の状況までは分かりません。',
+        ),
+
         const SectionHeader('出典'),
         Padding(
           padding: const EdgeInsets.fromLTRB(HinaSpace.m, 0, HinaSpace.m, HinaSpace.m),

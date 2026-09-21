@@ -263,6 +263,13 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             const SizedBox(height: 6),
             HinaButton.ghost('あとで確認する', onPressed: _acting ? null : () => _act(() => ctrl.later(inc.id))),
+            const SizedBox(height: 6),
+            // 提案が出るその場所に置く。設定の奥に免責を書いても、避難の最中に読まれない。
+            Text(
+              '参考情報です。自治体の避難指示とご自身の状況を優先してください。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: HinaColors.inkSub),
+              textAlign: TextAlign.center,
+            ),
           ]),
         ),
       ]);
