@@ -1,7 +1,7 @@
 /** Alert creation from real sources and from demo, plus broadcast. */
 import { db, COL, FieldValue } from "./firebase.js";
 import { fetchRecentQuakes } from "./sources/p2pquake.js";
-import { fetchWarningsMap, type Warning } from "./sources/jma.js";
+import { fetchWarningDoc, fetchWarningFeed, type Warning } from "./sources/jma.js";
 import { pushToTopic, pushToUsers } from "./agent/store.js";
 import { offsetM } from "./geo.js";
 import { getAreaCode } from "./tools/areaCode.js";
@@ -58,29 +58,46 @@ export async function pollQuakes(): Promise<AlertDoc[]> {
   return out;
 }
 
+/** フィードに載ってから、これより古い文書は追わない(初回・復旧時の取りこぼし防止と暴発防止)。 */
+const WARNING_MAX_AGE_MS = 30 * 60 * 1000;
+/** 1 回のポーリングで引く文書の上限。全国一斉更新のときに時間を使い切らないため。 */
+const WARNING_MAX_DOCS = 12;
+
 export async function pollWarnings(): Promise<AlertDoc[]> {
-  const out: AlertDoc[] = [];
-  const warnings = await fetchWarningsMap();
-  // Group new warning-level (or special) entries by (kind) across municipalities
-  const relevant = warnings.filter((w) => w.level !== "advisory");
-  const byKind = new Map<string, Warning[]>();
-  for (const w of relevant) {
-    const key = `${w.kind}`;
-    byKind.set(key, [...(byKind.get(key) ?? []), w]);
+  const feed = await fetchWarningFeed();
+
+  // 前回見た文書は引き直さない。平常時にここを通るのは 0〜数件。
+  const fresh: typeof feed = [];
+  for (const e of feed) {
+    if (Date.now() - new Date(e.updated).getTime() > WARNING_MAX_AGE_MS) continue;
+    if (await seen(`warn_doc_${e.url.split("/").pop()}`)) continue;
+    fresh.push(e);
+    if (fresh.length >= WARNING_MAX_DOCS) break;
   }
-  for (const [kind, list] of byKind) {
-    const codes = Array.from(new Set(list.map((w) => w.areaCode)));
-    // A "new" alert = new set of municipalities for this kind within the last hour bucket
-    const bucket = Math.floor(Date.now() / (60 * 60 * 1000));
-    const key = `warn_${kind}_${bucket}_${hash(codes.join(","))}`;
-    if (await seen(key)) continue;
-    const names = Array.from(new Set(list.map((w) => w.name)));
-    const special = list.some((w) => w.level === "special");
-    const a = await createAlert({
-      type: kindToDisaster(kind), source: "jma", title: names.join("・"), severity: special ? 1 : 0.6,
-      warnings: names, areaCodes: codes, issuedAt: new Date().toISOString(),
-    });
-    out.push(a);
+  if (!fresh.length) return [];
+
+  const out: AlertDoc[] = [];
+  const docs = (await Promise.all(fresh.map(fetchWarningDoc))).filter((d): d is NonNullable<typeof d> => !!d);
+  for (const doc of docs) {
+    // 注意報は通知しない。鳴りすぎて警報が埋もれる。
+    const relevant = doc.warnings.filter((w: Warning) => w.level !== "advisory");
+    if (!relevant.length) continue;
+    // 同じ文書の中でも種別ごとに分ける。大雨と高潮では避難先の選び方が変わる。
+    const byKind = new Map<string, Warning[]>();
+    for (const w of relevant) byKind.set(w.kind, [...(byKind.get(w.kind) ?? []), w]);
+    for (const [kind, list] of byKind) {
+      const names = Array.from(new Set(list.map((w) => w.name)));
+      const a = await createAlert({
+        type: kindToDisaster(kind),
+        source: "jma",
+        title: names.join("・"),
+        severity: list.some((w) => w.level === "special") ? 1 : 0.6,
+        warnings: names,
+        areaCodes: Array.from(new Set(list.map((w) => w.areaCode))),
+        issuedAt: doc.updated,
+      });
+      out.push(a);
+    }
   }
   return out;
 }
