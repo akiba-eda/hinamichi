@@ -36,4 +36,8 @@ export const COL = {
   places: "places", // places/{uid}/list/{placeId} — よく行く場所
   placeEvents: "placeEvents", // placeEvents/{uid}/list/{eventId} — 到着・出発
   meetups: "meetups",
+  /** 緊急時情報(本名・住所・年齢・電話)。**LLM には決して渡さない**ので、
+   *  users とは別のコレクションに置く。近くに置くと事故が起きる。 */
+  emergency: "emergency",
+  sos: "sos", // 代理通報の依頼
 } as const;

@@ -10,7 +10,9 @@ import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
 import '../../domain/senavi.dart';
 import '../../domain/weather.dart';
+import '../../domain/social.dart';
 import '../../state/providers.dart';
+import '../sos/sos_sheet.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../../ui/organisms/hina_map.dart';
@@ -148,6 +150,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             bottom: false,
             child: Column(children: [
               if (demo.enabled) const DemoBand(),
+              // 届いた通報依頼は何より先に出す。埋もれたら意味が無い。
+              for (final sos in ref.watch(incomingSosProvider).value ?? const <SosRequest>[])
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: _SosBanner(sos: sos, onTap: () => showSosSheet(context, sos)),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                 child: Row(children: [
@@ -172,6 +180,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       },
                     ),
                   const Spacer(),
+                  if (inc != null && inc.state.isActive)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _SosButton(incident: inc),
+                    ),
                   StatusChip(myStatus.state),
                 ]),
               ),
@@ -317,4 +330,111 @@ class _RoundButton extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// 届いた通報依頼の帯。
+///
+/// **ここには本名も住所も出さない。** ニックネームと市区町村だけ。
+/// 開いて「確認する」を押した人にだけ個人情報が見える。
+class _SosBanner extends StatelessWidget {
+  final SosRequest sos;
+  final VoidCallback onTap;
+  const _SosBanner({required this.sos, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Material(
+      color: HinaColors.stUnknown,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            const Icon(Icons.sos, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('通報の依頼が届いています', style: t.titleMedium?.copyWith(color: Colors.white)),
+                Text(sos.headline, style: t.bodySmall?.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ]),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// 自分が動けないときに、家族・友人へ通報を頼むボタン。
+///
+/// 押したら確認を挟む。誤爆すると相手に個人情報が開いてしまうので、
+/// 一度で飛ばさない。
+class _SosButton extends ConsumerStatefulWidget {
+  final Incident incident;
+  const _SosButton({required this.incident});
+  @override
+  ConsumerState<_SosButton> createState() => _SosButtonState();
+}
+
+class _SosButtonState extends ConsumerState<_SosButton> {
+  bool _sending = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: HinaColors.stUnknown,
+      shape: const StadiumBorder(),
+      elevation: 2,
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: _sending ? null : _confirm,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: _sending
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('SOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirm() async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('通報を代わりに頼みますか?'),
+        content: const Text(
+          '家族・友人に「代わりに通報してほしい」と伝えます。'
+          '相手が確認を押すと、あなたの本名・住所・年齢・電話番号が相手にだけ見えます。\n\n'
+          '119番や自治体には繋がりません。',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('やめる')),
+          FilledButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('依頼する')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    setState(() => _sending = true);
+    try {
+      final loc = ref.read(locationProvider);
+      final r = await ref.read(apiProvider).requestSos(
+            lat: loc?.point.latitude,
+            lng: loc?.point.longitude,
+            incidentId: widget.incident.id,
+            disaster: widget.incident.type.label,
+          );
+      messenger?.showSnackBar(SnackBar(content: Text('${r['sentTo']}人に通報を依頼しました')));
+    } catch (e) {
+      messenger?.showSnackBar(SnackBar(content: Text('依頼できませんでした: $e')));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 }

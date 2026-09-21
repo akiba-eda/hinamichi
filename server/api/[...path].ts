@@ -14,6 +14,7 @@ import friendsMessage from "../lib/routes/friends/message.js";
 import friendsSend from "../lib/routes/friends/send.js";
 import friendsShare from "../lib/routes/friends/share.js";
 import meArea from "../lib/routes/me/area.js";
+import meEmergency from "../lib/routes/me/emergency.js";
 import mePlaces from "../lib/routes/me/places.js";
 import meLocation from "../lib/routes/me/location.js";
 import meRegister from "../lib/routes/me/register.js";
@@ -21,6 +22,8 @@ import meStatus from "../lib/routes/me/status.js";
 import meetupEnd from "../lib/routes/meetup/end.js";
 import meetupStart from "../lib/routes/meetup/start.js";
 import sheltersNearby from "../lib/routes/shelters/nearby.js";
+import sosClose from "../lib/routes/sos/close.js";
+import sosRequest from "../lib/routes/sos/request.js";
 import watchDisasters from "../lib/routes/watch/disasters.js";
 import weatherNowcast from "../lib/routes/weather/nowcast.js";
 
@@ -51,6 +54,7 @@ const routes: Record<string, Handler> = {
   "friends/send": friendsSend,
   "friends/share": friendsShare,
   "me/area": meArea,
+  "me/emergency": meEmergency,
   "me/location": meLocation,
   "me/places": mePlaces,
   "me/register": meRegister,
@@ -58,6 +62,8 @@ const routes: Record<string, Handler> = {
   "meetup/end": meetupEnd,
   "meetup/start": meetupStart,
   "shelters/nearby": sheltersNearby,
+  "sos/close": sosClose,
+  "sos/request": sosRequest,
   "watch/disasters": watchDisasters,
   "weather/nowcast": weatherNowcast,
 };

@@ -45,6 +45,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "sos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recipients",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "active",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

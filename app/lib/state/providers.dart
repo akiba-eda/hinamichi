@@ -362,6 +362,41 @@ class BasemapNotifier extends StateNotifier<HinaBasemap> {
   }
 }
 
+// ------------------------------------------------------------------ 緊急時情報 / SOS
+/// 自分の緊急時情報(本名・住所・年齢・電話)。**AI には渡らない。**
+/// users とは別のコレクションに置いてあるので、購読も別にする。
+final myEmergencyProvider = StreamProvider<Map<String, dynamic>?>((ref) {
+  final uid = ref.watch(uidProvider);
+  if (uid == null || ref.watch(mockModeProvider)) return Stream.value(null);
+  return ref.watch(firestoreProvider).collection('emergency').doc(uid).snapshots().map((d) => d.data());
+});
+
+/// 自分に届いている、まだ閉じていない通報依頼。
+final incomingSosProvider = StreamProvider<List<SosRequest>>((ref) {
+  final uid = ref.watch(uidProvider);
+  if (uid == null || ref.watch(mockModeProvider)) return Stream.value(const <SosRequest>[]);
+  return ref
+      .watch(firestoreProvider)
+      .collection('sos')
+      .where('recipients', arrayContains: uid)
+      .where('active', isEqualTo: true)
+      .snapshots()
+      .map((q) => q.docs.map(SosRequest.fromDoc).toList());
+});
+
+/// 依頼された相手の緊急時情報。**依頼が生きている間だけ**ルールで読める。
+final revealedEmergencyProvider = StreamProvider.family<Map<String, dynamic>?, String>((ref, uid) {
+  if (ref.watch(mockModeProvider)) return Stream.value(null);
+  return ref
+      .watch(firestoreProvider)
+      .collection('emergency')
+      .doc(uid)
+      .snapshots()
+      .map((d) => d.data())
+      // 依頼が閉じるとルールで弾かれる。権限エラーは「もう見えない」と同義。
+      .handleError((Object e) => debugPrint('emergency unavailable: $e'));
+});
+
 // ------------------------------------------------------------------ 雨雲レーダー
 /// 地図に雨雲を重ねるか。ホームのボタンで切り替える。
 final rainOverlayProvider = StateProvider<bool>((_) => false);

@@ -74,6 +74,26 @@ class ApiClient {
         if (avatarMood != null) 'avatarMood': avatarMood,
       });
 
+  /// 緊急時情報。**AI には渡らない**ので、プロフィールとは別の経路にしてある。
+  Future<Map<String, dynamic>> setEmergency({required String legalName, String? address, int? age, String? phone}) =>
+      post('/api/me/emergency', {
+        'legalName': legalName,
+        if (address != null && address.isNotEmpty) 'address': address,
+        if (age != null) 'age': age,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+      });
+
+  /// 代わりに通報してほしい、と家族・友人へ依頼する。119番には繋がらない。
+  Future<Map<String, dynamic>> requestSos({double? lat, double? lng, String? incidentId, String disaster = '災害'}) =>
+      post('/api/sos/request', {
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+        if (incidentId != null) 'incidentId': incidentId,
+        'disaster': disaster,
+      });
+
+  Future<Map<String, dynamic>> closeSos(String sosId) => post('/api/sos/close', {'sosId': sosId});
+
   /// 自分のメモ(フレンドに見える一言)を更新する。
   Future<Map<String, dynamic>> setNote(String note) => post('/api/me/status', {'note': note});
 
@@ -100,7 +120,8 @@ class ApiClient {
   Future<Map<String, dynamic>> sendMessage({required String toUid, String? text, String? reaction}) =>
       post('/api/friends/send', {'toUid': toUid, if (text != null) 'text': text, if (reaction != null) 'reaction': reaction});
 
-  Future<Map<String, dynamic>> messageFriends(String text) => post('/api/friends/message', {'text': text});
+  Future<Map<String, dynamic>> messageFriends(String text, {String? incidentId}) =>
+      post('/api/friends/message', {'text': text, if (incidentId != null) 'incidentId': incidentId});
 
   // ---- demo ----
   Future<Map<String, dynamic>> demoFire({required String scenario, required double lat, required double lng, required String locationSource, bool failLlm = false}) =>

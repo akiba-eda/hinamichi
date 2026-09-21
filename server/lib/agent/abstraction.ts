@@ -49,6 +49,26 @@ export function assertNoCoordinates(payload: unknown): void {
   if (/"(lat|lng|latitude|longitude)"/i.test(s)) {
     throw new Error("data-minimisation violation: coordinate key in LLM payload");
   }
+  assertNoEmergencyPii(payload);
+}
+
+/**
+ * 緊急時情報(本名・住所・年齢・電話)が LLM への送信物に混じっていないか。
+ *
+ * 「渡さないように気をつける」では、いつか誰かが混ぜる。混ざったら**落ちる**
+ * ようにしてある。AI が受け取ってよい呼び名はニックネーム(displayName)だけで、
+ * 本名は emergency/{uid} に分けて置いてある。
+ */
+export function assertNoEmergencyPii(payload: unknown): void {
+  const s = JSON.stringify(payload);
+  const keys = /"(legalName|address|age|phone|tel|postalCode|emergency)"/i;
+  if (keys.test(s)) {
+    throw new Error("data-minimisation violation: emergency PII key in LLM payload");
+  }
+  // 電話番号の形。数字だけの並びは crowdPct などと紛れないよう、区切り付きに限る。
+  if (/\b0\d{1,4}-\d{1,4}-\d{3,4}\b/.test(s)) {
+    throw new Error("data-minimisation violation: phone-like string in LLM payload");
+  }
 }
 
 /**

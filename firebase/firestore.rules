@@ -65,6 +65,18 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
       allow write: if false;
     }
+    // 緊急時情報(本名・住所・年齢・電話)。
+    // 本人と、本人が出した SOS の宛先だけが読める。SOS を閉じると
+    // revealedTo が空になり、また読めなくなる。書き込みはサーバーのみ。
+    match /emergency/{uid} {
+      allow read: if isMe(uid) || (signedIn() && request.auth.uid in resource.data.get('revealedTo', []));
+      allow write: if false;
+    }
+    // 代理通報の依頼。本人と宛先だけ。
+    match /sos/{sosId} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || request.auth.uid in resource.data.recipients);
+      allow write: if false;
+    }
     // Incidents & agent log: owner read-only
     match /incidents/{incidentId} {
       allow read: if signedIn() && resource.data.uid == request.auth.uid;

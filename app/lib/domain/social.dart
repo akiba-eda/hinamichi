@@ -141,3 +141,37 @@ const kReactions = <({String emoji, String label})>[
   (emoji: '✅', label: '無事'),
   (emoji: '🆘', label: '助けて'),
 ];
+
+/// 代理通報の依頼。
+///
+/// 通知と一覧に出るのは**ニックネームと市区町村**まで。本名・住所・年齢・電話は
+/// ここに含めず、受け取った人が「確認する」を押して初めて別の場所から読む。
+/// 通知はロック画面に出るので、そこに住所を載せるわけにいかない。
+class SosRequest {
+  final String id, uid, nickname, disaster;
+  final String? areaName;
+  final DateTime at;
+
+  const SosRequest({
+    required this.id,
+    required this.uid,
+    required this.nickname,
+    required this.disaster,
+    this.areaName,
+    required this.at,
+  });
+
+  factory SosRequest.fromDoc(DocumentSnapshot<Map<String, dynamic>> d) {
+    final j = d.data() ?? {};
+    return SosRequest(
+      id: d.id,
+      uid: (j['uid'] ?? '') as String,
+      nickname: (j['nickname'] ?? '友だち') as String,
+      disaster: (j['disaster'] ?? '災害') as String,
+      areaName: j['areaName'] as String?,
+      at: (j['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  String get headline => '${areaName ?? ''}の$disasterで、$nicknameさんが被災している可能性があります';
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/senavi.dart';
@@ -45,7 +46,7 @@ class _ApprovalBodyState extends ConsumerState<_ApprovalBody> {
     return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Text('家族・友人に\nこのメッセージを送っていい?', textAlign: TextAlign.center, style: t.titleLarge),
       const SizedBox(height: 6),
-      Text('自由文はセナヴィが勝手に送りません。あなたが承認したものだけ届きます。電話番号やメールが含まれていれば送る前に伏せ字にします。', textAlign: TextAlign.center, style: t.bodySmall),
+      Text('自由文はセナヴィが勝手に送りません。あなたが承認したものだけ届きます。', textAlign: TextAlign.center, style: t.bodySmall),
       const SizedBox(height: 16),
       Container(
         padding: const EdgeInsets.all(12),

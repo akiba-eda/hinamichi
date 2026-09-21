@@ -11,8 +11,12 @@ import '../../domain/senavi.dart';
 import '../../mock/mock_backend.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
+import 'emergency_page.dart';
 
-/// 設定 → プロフィール。アイコン / 表示名 / メモ の 3 つだけ。
+/// 設定 → プロフィール。
+///
+/// プロフィール名(ニックネーム)は AI も受け取る。緊急時情報は別画面に分けて
+/// あり、そちらは AI に渡らない ── 同じ画面に並べると境界が曖昧になる。
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -24,6 +28,7 @@ class ProfilePage extends ConsumerWidget {
     final name = '${me?['displayName'] ?? 'わたし'}';
     final avatarImage = me?['avatarImage'] as String?;
     final avatarMood = me?['avatarMood'] as String?;
+    final emergency = ref.watch(myEmergencyProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('プロフィール')),
@@ -65,10 +70,22 @@ class ProfilePage extends ConsumerWidget {
           onTap: () => _editNote(context, ref, myStatus.note ?? ''),
         ),
         const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.sos_outlined, color: HinaColors.stUnknown),
+          title: const Text('緊急時情報'),
+          subtitle: Text(
+            emergency?['legalName'] != null ? '登録済み(本名・住所・年齢・電話)' : '未登録 — 通報を代わりに頼むのに要ります',
+            style: t.bodySmall,
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EmergencyPage())),
+        ),
+        const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.all(HinaSpace.m),
           child: Text(
-            'アイコンと名前は、招待した家族・友人の一覧に表示されます。メモは安否と一緒に相手へ届きます。',
+            'アイコンと名前は、招待した家族・友人の一覧に表示されます。メモは安否と一緒に相手へ届きます。\n\n'
+            'プロフィール名は AI も受け取ります。緊急時情報(本名・住所・年齢・電話)は AI に一度も渡りません。',
             style: t.bodySmall,
           ),
         ),
