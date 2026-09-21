@@ -209,21 +209,75 @@ final placesProvider = StreamProvider<List<SavedPlace>>((ref) {
 });
 
 /// 「◯◯が自宅に着きました」の履歴。新しいものが先頭。
+///
+/// 相手ごとに購読する。イベントは相手の領域(placeEvents/{friendUid})にあり、
+/// 安否を共有している相手だけがルールで読める。
+final friendPlaceEventsProvider = StreamProvider.family<List<PlaceEvent>, FriendEntry>((ref, friend) {
+  if (ref.watch(mockModeProvider)) return const Stream.empty();
+  return ref
+      .watch(firestoreProvider)
+      .collection('placeEvents')
+      .doc(friend.uid)
+      .collection('list')
+      .orderBy('at', descending: true)
+      .limit(5)
+      .snapshots()
+      .map((q) => q.docs.map((d) => PlaceEvent.fromDoc(d, friend)).toList())
+      // 共有されていない相手はルールで弾かれる。権限エラーは「見えない」と
+      // 同義なので、落とさず空にする。
+      .handleError((Object e) => debugPrint('placeEvents unavailable: $e'));
+});
+
 final placeEventsProvider = Provider<List<PlaceEvent>>((ref) {
   if (ref.watch(mockModeProvider)) return ref.watch(mockBackendProvider).placeEvents;
-  return const [];
+  final out = <PlaceEvent>[];
+  for (final f in ref.watch(friendsProvider).value ?? const <FriendEntry>[]) {
+    out.addAll(ref.watch(friendPlaceEventsProvider(f)).value ?? const []);
+  }
+  out.sort((a, b) => b.at.compareTo(a.at));
+  return out.take(10).toList();
 });
 
 /// いま進行中の合流。無ければ null。
 final meetupProvider = Provider<Meetup?>((ref) {
   if (ref.watch(mockModeProvider)) return ref.watch(mockBackendProvider).meetup;
-  return null;
+  return ref.watch(activeMeetupProvider).value;
+});
+
+final activeMeetupProvider = StreamProvider<Meetup?>((ref) {
+  final uid = ref.watch(uidProvider);
+  if (uid == null || ref.watch(mockModeProvider)) return Stream.value(null);
+  return ref
+      .watch(firestoreProvider)
+      .collection('meetups')
+      .where('memberUids', arrayContains: uid)
+      .where('active', isEqualTo: true)
+      .limit(1)
+      .snapshots()
+      .map((q) => q.docs.isEmpty ? null : Meetup.fromDoc(q.docs.first));
 });
 
 /// 相手ごとのやりとり。
 final chatProvider = Provider.family<List<ChatMessage>, String>((ref, friendUid) {
   if (ref.watch(mockModeProvider)) return ref.watch(mockBackendProvider).chats[friendUid] ?? const [];
-  return const [];
+  return ref.watch(chatStreamProvider(friendUid)).value ?? const [];
+});
+
+/// スレッド名は uid を並べ替えて繋いだもの。どちらから見ても同じ名前になる。
+String threadIdOf(String a, String b) => ([a, b]..sort()).join('_');
+
+final chatStreamProvider = StreamProvider.family<List<ChatMessage>, String>((ref, friendUid) {
+  final uid = ref.watch(uidProvider);
+  if (uid == null || ref.watch(mockModeProvider)) return Stream.value(const <ChatMessage>[]);
+  return ref
+      .watch(firestoreProvider)
+      .collection('messages')
+      .doc(threadIdOf(uid, friendUid))
+      .collection('list')
+      .orderBy('at')
+      .limit(200)
+      .snapshots()
+      .map((q) => q.docs.map(ChatMessage.fromDoc).toList());
 });
 
 /// 未読の代わりに「最後の一言」だけ持つ。一覧のプレビュー用。

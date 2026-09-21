@@ -40,6 +40,31 @@ service cloud.firestore {
       allow read: if isMe(uid) || isLocationSharedWith(uid);
       allow write: if false;
     }
+    // やりとり。スレッド名は uid を並べ替えて繋いだものなので、割れば
+    // 当事者が分かる。対応表を別に持たずに、当事者2人だけに閉じられる。
+    match /messages/{threadId}/list/{messageId} {
+      allow read: if signedIn() && threadId.split('_').hasAny([request.auth.uid]);
+      allow write: if false; // 送信はサーバー経由(友だち確認と通知のため)
+    }
+    // よく行く場所。本人だけ。出入りの判定はサーバーがする。
+    match /places/{uid} {
+      allow read: if isMe(uid);
+      allow write: if false;
+      match /list/{placeId} {
+        allow read: if isMe(uid);
+        allow write: if false;
+      }
+    }
+    // 到着・出発。安否を共有している相手まで見える。
+    match /placeEvents/{uid}/list/{eventId} {
+      allow read: if isMe(uid) || isAcceptedFriendOf(uid);
+      allow write: if false;
+    }
+    // 合流。メンバーだけ。
+    match /meetups/{meetupId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberUids;
+      allow write: if false;
+    }
     // Incidents & agent log: owner read-only
     match /incidents/{incidentId} {
       allow read: if signedIn() && resource.data.uid == request.auth.uid;

@@ -11,11 +11,15 @@ import demoFriends from "../lib/routes/demo/friends.js";
 import demoReset from "../lib/routes/demo/reset.js";
 import friendsAccept from "../lib/routes/friends/accept.js";
 import friendsMessage from "../lib/routes/friends/message.js";
+import friendsSend from "../lib/routes/friends/send.js";
 import friendsShare from "../lib/routes/friends/share.js";
 import meArea from "../lib/routes/me/area.js";
+import mePlaces from "../lib/routes/me/places.js";
 import meLocation from "../lib/routes/me/location.js";
 import meRegister from "../lib/routes/me/register.js";
 import meStatus from "../lib/routes/me/status.js";
+import meetupEnd from "../lib/routes/meetup/end.js";
+import meetupStart from "../lib/routes/meetup/start.js";
 import sheltersNearby from "../lib/routes/shelters/nearby.js";
 import watchDisasters from "../lib/routes/watch/disasters.js";
 import weatherNowcast from "../lib/routes/weather/nowcast.js";
@@ -44,11 +48,15 @@ const routes: Record<string, Handler> = {
   "demo/reset": demoReset,
   "friends/accept": friendsAccept,
   "friends/message": friendsMessage,
+  "friends/send": friendsSend,
   "friends/share": friendsShare,
   "me/area": meArea,
   "me/location": meLocation,
+  "me/places": mePlaces,
   "me/register": meRegister,
   "me/status": meStatus,
+  "meetup/end": meetupEnd,
+  "meetup/start": meetupStart,
   "shelters/nearby": sheltersNearby,
   "watch/disasters": watchDisasters,
   "weather/nowcast": weatherNowcast,

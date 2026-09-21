@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'models.dart';
+
 /// よく行く場所。到着/出発の判定に使う。
 ///
 /// 平時は「自宅に着いた」、災害時は「避難場所に着いた」。同じ仕組みで両方を
@@ -51,6 +53,19 @@ class PlaceEvent {
   final bool arrived;
   final DateTime at;
   const PlaceEvent({required this.friendUid, required this.friendName, required this.placeName, required this.arrived, required this.at});
+
+  /// 名前はイベント側に持たせず、一覧の相手から受け取る ── 相手が表示名を
+  /// 変えたときに、過去のできごとまで古い名前で残らないように。
+  factory PlaceEvent.fromDoc(DocumentSnapshot<Map<String, dynamic>> d, FriendEntry friend) {
+    final j = d.data() ?? {};
+    return PlaceEvent(
+      friendUid: friend.uid,
+      friendName: friend.displayName,
+      placeName: (j['placeName'] ?? '場所') as String,
+      arrived: j['arrived'] == true,
+      at: (j['at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
 
   String get line => arrived ? '$friendNameが$placeNameに着きました' : '$friendNameが$placeNameを出ました';
 }

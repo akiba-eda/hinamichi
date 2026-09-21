@@ -24,8 +24,9 @@ void main() {
     await tester.pumpWidget(ProviderScope(
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: shelters, hazard: MockBackend.hazardHere)),
-        // フレンドは Firestore を触るので、この画面のテストでは空に固定する。
+        // フレンドと合流は Firestore を触るので、この画面のテストでは固定する。
         friendsOnMapProvider.overrideWith((ref) => const <FriendOnMap>[]),
+        meetupProvider.overrideWith((ref) => null),
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));
@@ -45,6 +46,7 @@ void main() {
       overrides: [
         nearbyProvider.overrideWith((ref) async => (shelters: <ShelterInfo>[], hazard: null)),
         friendsOnMapProvider.overrideWith((ref) => const <FriendOnMap>[]),
+        meetupProvider.overrideWith((ref) => null),
       ],
       child: MaterialApp(theme: hinaTheme(), home: const MapPage()),
     ));

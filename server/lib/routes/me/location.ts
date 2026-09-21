@@ -2,6 +2,7 @@ import { z } from "zod";
 import { route, body } from "../../http.js";
 import { db, COL, FieldValue, Timestamp } from "../../firebase.js";
 import { getPlaceName, placeCell } from "../../tools/areaCode.js";
+import { updatePlacePresence } from "../../tools/places.js";
 
 const Body = z.object({
   lat: z.number(),
@@ -49,5 +50,13 @@ export default route({ methods: ["POST"], auth: "user" }, async (req, _res, ctx)
     },
     { merge: true },
   );
+  // 登録した場所への出入りはここで見る。端末が寝ている間の到着こそ知りたいので、
+  // クライアント判定にはしない。失敗しても位置の記録は成立させる。
+  try {
+    await updatePlacePresence(ctx.uid!, b, at);
+  } catch (e) {
+    console.warn("[places] presence update failed", e);
+  }
+
   return { ok: true, applied: true, areaName };
 });

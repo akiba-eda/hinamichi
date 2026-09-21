@@ -32,4 +32,8 @@ export const COL = {
   shelterCrowd: "shelterCrowd",
   shelterCache: "shelterCache",
   approvals: "approvals",
+  messages: "messages", // messages/{threadId}/list/{messageId}
+  places: "places", // places/{uid}/list/{placeId} — よく行く場所
+  placeEvents: "placeEvents", // placeEvents/{uid}/list/{eventId} — 到着・出発
+  meetups: "meetups",
 } as const;
