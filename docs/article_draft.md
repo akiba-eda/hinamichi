@@ -3,7 +3,7 @@ title: "逃げる先を、あなたの代わりに決める — AIに座標を�
 emoji: "🐕"
 type: "tech"
 topics: ["ai", "flutter", "orcarouter", "aihack", "firebase"]
-published: false
+published: true
 ---
 
 ## はじめに
@@ -30,17 +30,6 @@ published: false
 LLM の呼び出しは全て [OrcaRouter](https://www.orcarouter.ai/ja) 経由です。複数プロバイダを1つのAPIで扱えるゲートウェイで、ルーティング・フォールバック・コスト照合を任せています。
 
 うまくいった話だけでなく、**実装してから外した機能**についても書きました。そちらの方が役に立つと思います。
-
-<!-- ▼▼ デモ動画（YouTube の URL を貼るだけで埋め込まれます） ▼▼
-     おすすめの尺: 60〜90秒
-     1. 平時のホーム（雨雲ボタンを押して雨雲を出す）
-     2. 地震を発火 → 2〜3秒で避難先と理由3点
-     3. 何も押さずに30秒 → 自動でナビ開始
-     4. 満員デモ → 自動で次点へ
-     5. 「判断の記録」→ 審査員向けタブ（AIに渡した入力に座標が無い / コスト）
--->
-@[youtube](ここに動画IDを入れる)
-
 
 ## 何を作ったか
 
@@ -534,6 +523,5 @@ OrcaRouterは、この「渡すもの・渡さないもの」をアプリのコ�
 
 - リポジトリ: https://github.com/akiba-eda/hinamichi
 - 設計書: リポジトリ内 `docs/ヒナミチ_設計書_v1.md`
-- デモ動画: <!-- YouTube の URL -->
 
 #AIHACK #OrcaRouter
