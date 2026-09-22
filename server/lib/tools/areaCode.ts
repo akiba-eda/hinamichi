@@ -35,22 +35,23 @@ export async function getAreaCode(p: LatLng): Promise<AreaInfo> {
   const muniCd: string = String(j?.results?.muniCd ?? "");
   if (!/^\d{5}$/.test(muniCd)) throw new Error("no municipality for this point");
   const prefCd = muniCd.slice(0, 2);
+  // 逆ジオが返す lv01Nm は町丁目(「猫実二丁目」)まで細かい。この名前は LLM の
+  // プロンプトとフレンド画面にそのまま出るので、市区町村で止める。判断に町丁目は
+  // 要らない(距離とハザードは別に渡している)し、渡す理由の無いものは渡さない。
+  // 市区町村表が引けないときは都道府県だけにして、町丁目へは落とさない。
+  const muni = (await muniNames())?.[muniCd] ?? "";
   return {
     muniCd,
     jmaClass20: muniCd + "00",
     prefCd,
     jmaOffice: prefCd + "0000",
-    name: `${PREF[prefCd] ?? ""}${j?.results?.lv01Nm ?? ""}`,
+    name: `${PREF[prefCd] ?? ""}${muni}`,
   };
 }
 
 /**
- * 市区町村コード → 「東京都足立区」。
- *
- * 逆ジオコーダが返す `lv01Nm` は町丁目(「猫実二丁目」)まで細かい。フレンドに
- * 見せる「最後にいた場所」はそこまで要らない ── というより、見せるべきでない。
- * 区市町村で止めるために、地理院の市区町村表を引く。100KB 程度なので
- * インスタンスごとに 1 回だけ読む。
+ * 市区町村コード → 「足立区」の表。地理院の市区町村表を引く。
+ * 100KB 程度なのでインスタンスごとに 1 回だけ読む。
  */
 let muniTable: Promise<Record<string, string> | null> | null = null;
 function muniNames(): Promise<Record<string, string> | null> {
@@ -94,10 +95,7 @@ export async function getPlaceName(p: LatLng): Promise<string | null> {
   if (placeCache.has(cell)) return placeCache.get(cell)!;
   let name: string | null = null;
   try {
-    const area = await getAreaCode(p);
-    const pref = PREF[area.prefCd] ?? "";
-    const muni = (await muniNames())?.[area.muniCd] ?? "";
-    name = `${pref}${muni}` || null;
+    name = (await getAreaCode(p)).name || null;
   } catch {
     return null; // 一時的な失敗を覚え込まない
   }

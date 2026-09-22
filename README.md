@@ -88,8 +88,8 @@ cron-job.org (2分ごと)
 特徴だけを渡します。実際に送っている内容:
 
 ```json
-{"disaster": {"type":"earthquake","title":"地震(最大震度6弱・千葉県猫実二丁目付近)","intensity":"6弱"},
- "user": {"areaName":"千葉県猫実二丁目","hazardHere":{"flood":"0.5〜3m","tsunamiZone":true}},
+{"disaster": {"type":"earthquake","title":"地震(最大震度6弱・千葉県浦安市付近)","intensity":"6弱"},
+ "user": {"areaName":"千葉県浦安市","hazardHere":{"flood":"0.5〜3m","tsunamiZone":true}},
  "candidatesPreview": [{"id":"A","walkMin":6,"direction":"南","elevationM":1.2,
                         "flood":"浸水想定なし","tsunami":"0.5〜3m","crowdPct":0}]}
 ```

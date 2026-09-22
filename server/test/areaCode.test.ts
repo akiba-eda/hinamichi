@@ -36,3 +36,29 @@ describe("逆ジオが落ちたとき", () => {
     expect(UNKNOWN_AREA.muniCd).toBe("");
   });
 });
+
+describe("LLM とフレンドに出す地名の粒度", () => {
+  // 逆ジオ(lv01Nm は町丁目まで細かい)と、地理院の市区町村表の 2 本を返す fetch。
+  const geocoder = JSON.stringify({ results: { muniCd: "12227", lv01Nm: "猫実二丁目" } });
+  const muniJs = `GSI.MUNI_ARRAY["12227"] = '12,千葉県,12227,浦安市';`;
+
+  it("市区町村で止める(町丁目は渡さない)", async () => {
+    vi.resetModules(); // 市区町村表はモジュール内でキャッシュされるので毎回読み直す
+    vi.stubGlobal("fetch", async (url: string) =>
+      new Response(String(url).includes("muni.js") ? muniJs : geocoder, { status: 200 }));
+    const { getAreaCode, getPlaceName } = await import("../lib/tools/areaCode.js");
+    expect((await getAreaCode(here)).name).toBe("千葉県浦安市");
+    expect(await getPlaceName(here)).toBe("千葉県浦安市");
+  });
+
+  it("市区町村表が引けなくても町丁目へは落とさない(都道府県だけ)", async () => {
+    vi.resetModules();
+    vi.stubGlobal("fetch", async (url: string) =>
+      String(url).includes("muni.js") ? new Response("", { status: 503 }) : new Response(geocoder, { status: 200 }));
+    const { getAreaCode } = await import("../lib/tools/areaCode.js");
+    const area = await getAreaCode(here);
+    expect(area.name).toBe("千葉県");
+    expect(area.name).not.toContain("猫実");
+    expect(area.muniCd).toBe("12227"); // 名前が粗くても警報の絞り込みは効く
+  });
+});
