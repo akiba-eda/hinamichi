@@ -1,0 +1,72 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ヒナミチ 画面でわかるチラシ</title>
+<link rel="stylesheet" href="_common.css">
+<style>
+@page{size:A4 landscape;margin:0}
+html,body{width:297mm;height:210mm}
+.page{width:297mm;height:210mm;padding:7mm 8mm;display:flex;flex-direction:column;gap:3.6mm;overflow:hidden}
+.head{display:grid;grid-template-columns:44mm 34mm 1fr 88mm;align-items:center;gap:0;height:34mm;overflow:hidden}
+.head .logo{padding:0 4mm;border-right:.3mm solid var(--line);height:24mm;display:flex;align-items:center}
+.head .logo img{width:100%}
+.head .sen{padding:0 4mm;border-right:.3mm solid var(--line);height:24mm;display:flex;flex-direction:column;justify-content:center}
+.head .sen b{font-size:11pt;font-weight:900;letter-spacing:.06em}
+.head .sen span{font-size:6.6pt;color:var(--sub);letter-spacing:.08em}
+.head .copy{padding:0 5mm}
+.head .copy b{font-size:11.5pt;font-weight:900;display:block;margin-bottom:1.2mm}
+.head .copy p{font-size:7.4pt;line-height:1.55;color:var(--ink)}
+.head .art{height:34mm;position:relative;overflow:hidden;border-radius:0 4mm 4mm 0}
+.head .art img{width:100%;height:100%;object-fit:cover;object-position:62% 40%;display:block}
+.head .art .chip{position:absolute;right:3mm;top:3mm}
+.screens{display:grid;grid-template-columns:repeat(6,1fr);gap:3.2mm;flex:1;min-height:0}
+.sc{padding:3mm 3mm 3.2mm;display:flex;flex-direction:column;gap:1.6mm;min-height:0}
+.sc .t{display:flex;align-items:center;gap:1.8mm}
+.sc .t .h{font-size:9pt}
+.sc .d{height:10.5mm}
+.sc .phone{margin-top:auto}
+.foot{display:grid;grid-template-columns:1.35fr .9fr 1.15fr .78fr;gap:3.2mm;height:44mm}
+.foot .card{padding:3mm 3.4mm}
+.faces{display:grid;grid-template-columns:repeat(8,1fr);gap:1mm;margin-top:2mm}
+.faces div{text-align:center;font-size:5.8pt;color:var(--sub)}
+.faces img{width:8.6mm;height:8.6mm;object-fit:contain;display:block;margin:0 auto .5mm}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:1.2mm 3mm;margin-top:2mm;font-size:7pt}
+.st div{display:flex;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:6.6pt;line-height:1.4;margin-top:1.6mm}
+td{padding:.9mm .6mm;border-top:.25mm solid var(--line);vertical-align:top}
+tr:first-child td{border-top:none;font-weight:900;color:var(--sub);font-size:6.2pt}
+.qrs{display:grid;grid-template-columns:1fr 1fr;gap:2mm;margin-top:1.6mm}
+.qr{text-align:center;font-size:5.8pt;font-weight:700;color:var(--sub)}
+</style></head><body><div class="page">
+
+<div class="card head">
+  <div class="logo"><img src="logo_cut.png" alt="ヒナミチ"></div>
+  <div class="sen"><b>セナヴィ</b><span>- SENAvi -<br>Safety Navigator AI</span></div>
+  <div class="copy"><b>大切な人と、帰るための道を。</b><p>災害時に、あなたの代わりに判断し、安全な避難経路を導いてくれるAIナビゲーターです。ふだんは雨雲レーダーと位置共有のアプリとして使えます。</p></div>
+  <div class="art"><img src="../hero.png" alt=""><span class="chip"><b>AI HACK 2026</b> 応募作品</span></div>
+</div>
+
+<div class="screens">
+  <div class="card sc"><div class="t"><span class="num">1</span><span class="h">ホーム（ふだん）</span></div><p class="d">雨雲レーダーと周辺の避難場所。セナヴィが空模様をひとこと言います。</p><div class="phone"><img src="shots/01_home.png" alt=""></div></div>
+  <div class="card sc"><div class="t"><span class="num">2</span><span class="h">災害の日</span></div><p class="d">避難先と理由を3点。押さなくても、30秒で案内が始まります。</p><div class="phone"><img src="shots/02_decide.png" alt=""></div></div>
+  <div class="card sc"><div class="t"><span class="num">3</span><span class="h">近隣情報</span></div><p class="d">災害の種別で避難場所が変わります。津波なら高台や高い建物だけに。</p><div class="phone"><img src="shots/03_nearby.png" alt=""></div></div>
+  <div class="card sc"><div class="t"><span class="num">4</span><span class="h">合流</span></div><p class="d">落ち合う場所を決めると全員の地図に同じ旗。各自の徒歩分が並びます。</p><div class="phone"><img src="shots/04_meetup.png" alt=""></div></div>
+  <div class="card sc"><div class="t"><span class="num">5</span><span class="h">判断の記録</span></div><p class="d">AIに渡した入力・モデル名・コストが全部残ります。座標はありません。</p><div class="phone"><img src="shots/05_log.png" alt=""></div></div>
+  <div class="card sc"><div class="t"><span class="num">6</span><span class="h">友だち（見守り）</span></div><p class="d">確認中→避難中→到着を自動で送ります。位置は許可した相手にだけ。</p><div class="phone"><img src="shots/06_friends.png" alt=""></div></div>
+</div>
+
+<div class="foot">
+  <div class="card"><span class="h">セナヴィの表情</span><p class="d">状況に応じて使い分けます。</p>
+    <div class="faces">
+      <div><img src="../../app/assets/senavi/normal.png" alt="">通常</div><div><img src="../../app/assets/senavi/smile.png" alt="">にっこり</div><div><img src="../../app/assets/senavi/surprised.png" alt="">驚き</div><div><img src="../../app/assets/senavi/serious.png" alt="">真剣</div><div><img src="../../app/assets/senavi/running.png" alt="">走る</div><div><img src="../../app/assets/senavi/troubled.png" alt="">困った</div><div><img src="../../app/assets/senavi/lying.png" alt="">伏せる</div><div><img src="../../app/assets/senavi/lookback.png" alt="">振り向く</div>
+    </div></div>
+  <div class="card"><span class="h">安否の状態</span><p class="d">家族・友人に自動で届きます。</p>
+    <div class="st"><div><i class="dot" style="background:var(--safe)"></i>安全</div><div><i class="dot" style="background:var(--assess)"></i>確認中</div><div><i class="dot" style="background:var(--evac)"></i>避難中</div><div><i class="dot" style="background:var(--arrived)"></i>到着</div><div><i class="dot" style="background:var(--unknown)"></i>不明</div></div></div>
+  <div class="card"><span class="h">ふだんの仕組みが、災害の日に効く</span>
+    <table><tr><td>ふだん</td><td>災害の日</td></tr>
+    <tr><td>セナヴィに天気を聞く</td><td>避難先を判断する</td></tr>
+    <tr><td>友だちと待ち合わせる</td><td>避難先で合流する</td></tr>
+    <tr><td>帰宅を家族に知らせる</td><td>避難所への到着を知らせる</td></tr></table></div>
+  <div class="card"><span class="h">くわしくは</span>
+    <div class="qrs"><div class="qr"><img src="qr_github.png" alt="">GitHub</div><div class="qr"><img src="qr_qiita.png" alt="">Qiita 記事</div></div>
+    <p class="small" style="margin-top:1.4mm">本アプリは試作です。避難の判断は自治体の避難指示を優先してください。</p></div>
+</div>
+
+</div></body></html>
