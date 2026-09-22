@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<title>ヒナミチ ポスター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 0; }
+:root{--bg:#F5F6F8;--card:#FFFFFF;--sub:#E5E0D8;--accent:#F5C368;--alert:#E57373;--ok:#7CB342;--sky:#5AA8D6;--ink:#3A4653;--ink2:#6F7B87;--line:#E6E8EC}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:210mm;height:297mm;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-feature-settings:"palt"}
+.page{width:210mm;height:297mm;overflow:hidden;position:relative;display:flex;flex-direction:column}
+/* hero */
+.hero{height:56mm;position:relative;overflow:hidden;background:#BBD3EA}
+.hero>img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;display:block}
+.hero .logo{position:absolute;left:8mm;top:8mm;width:60mm;height:auto;filter:drop-shadow(0 0 1.2mm rgba(255,255,255,.95)) drop-shadow(0 0 .5mm rgba(255,255,255,.9))}
+.hero .tag{position:absolute;top:6mm;right:8mm;background:rgba(255,255,255,.92);color:var(--ink);font-size:7.5pt;font-weight:700;padding:1.6mm 3.2mm;border-radius:99px;letter-spacing:.02em;box-shadow:0 1mm 3mm rgba(0,0,0,.08)}
+.hero .tag b{color:#E38B1C}
+.hero .sub{position:absolute;left:8mm;bottom:6mm;background:rgba(255,255,255,.92);color:var(--ink);font-size:8pt;font-weight:700;padding:1.6mm 3.2mm;border-radius:99px;box-shadow:0 1mm 3mm rgba(0,0,0,.08)}
+/* body */
+.body{padding:6mm 8mm 0;flex:1;display:flex;flex-direction:column;gap:4.6mm}
+h1{font-size:18.5pt;font-weight:900;letter-spacing:.01em;line-height:1.25}
+.lead{font-size:8.6pt;line-height:1.55;color:var(--ink);margin-top:1.4mm}
+.lead b{font-weight:900}
+.catch{display:flex;gap:5mm;align-items:center}
+.catch .txt{flex:1}
+.catch img{width:24mm;height:24mm;object-fit:contain;flex:none}
+h2{font-size:10.5pt;font-weight:900;margin-bottom:1.6mm;display:flex;align-items:center;gap:2mm}
+h2::before{content:"";display:inline-block;width:2.2mm;height:2.2mm;border-radius:50%;background:var(--accent)}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:3.2mm}
+.shot{background:var(--card);border-radius:3mm;padding:2mm;box-shadow:0 .6mm 2.5mm rgba(58,70,83,.10)}
+.shot img{width:100%;aspect-ratio:1080/2400;object-fit:cover;border-radius:2.2mm;display:block;border:.25mm solid var(--line)}
+.shot .n{font-size:6.6pt;font-weight:900;color:var(--ink2);margin-top:1.8mm;letter-spacing:.06em}
+.shot .t{font-size:8.2pt;font-weight:900;margin-top:.2mm}
+.shot .d{font-size:7pt;line-height:1.45;color:var(--ink2);margin-top:.6mm}
+.cols{display:grid;grid-template-columns:1fr 1.15fr;gap:4mm}
+.card{background:var(--card);border-radius:3mm;padding:3.2mm 3.6mm;box-shadow:0 .6mm 2.5mm rgba(58,70,83,.10)}
+table{width:100%;border-collapse:collapse;font-size:7pt;line-height:1.35}
+td,th{padding:1.3mm 1.2mm;vertical-align:top;border-top:.25mm solid var(--line)}
+tr:first-child td,tr:first-child th{border-top:none}
+th{text-align:left;font-weight:900;color:var(--ink2);font-size:6.4pt;letter-spacing:.04em}
+.pill{display:inline-block;font-size:6.4pt;font-weight:900;padding:.6mm 2mm;border-radius:99px;white-space:nowrap}
+.p-day{background:#EAF3F9;color:#2F7DAA}.p-dis{background:#FBE9E7;color:#C0504A}
+.crit{width:14mm;font-weight:900;color:var(--ink);white-space:nowrap}
+.faces{display:flex;gap:2mm;align-items:flex-end;margin-top:2.2mm}
+.faces div{text-align:center;font-size:5.8pt;color:var(--ink2)}
+.faces img{width:9.5mm;height:9.5mm;object-fit:contain;display:block;margin:0 auto .4mm}
+/* footer */
+.foot{margin-top:auto;background:var(--card);border-top:.3mm solid var(--line);padding:3.6mm 8mm 4mm;display:grid;grid-template-columns:1fr auto auto;gap:5mm;align-items:center}
+.stats{display:flex;gap:2.2mm;flex-wrap:wrap;margin-bottom:2mm}
+.stat{background:var(--bg);border-radius:2mm;padding:1.4mm 2.6mm;font-size:6.6pt;color:var(--ink2);line-height:1.2}
+.stat b{display:block;font-size:10pt;color:var(--ink);font-weight:900;letter-spacing:.01em}
+.note{font-size:5.9pt;color:var(--ink2);line-height:1.45}
+.qr{text-align:center;font-size:6pt;font-weight:700;color:var(--ink2)}
+.qr img{width:19mm;height:19mm;display:block;margin:0 auto .8mm;border:.25mm solid var(--line);border-radius:1.5mm}
+</style></head>
+<body><div class="page">
+
+<div class="hero">
+  <img src="../hero.png" alt="">
+  <img class="logo" src="logo_cut.png" alt="ヒナミチ">
+  <div class="tag"><b>AI HACK 2026</b>「業務を自律化するAIエージェント」応募作品</div>
+  <div class="sub">日常に溶け込む防災AI</div>
+</div>
+
+<div class="body">
+  <div class="catch">
+    <div class="txt">
+      <h1>逃げる先を、あなたの代わりに決める。</h1>
+      <p class="lead">災害が起きたら、AIナビゲーター「セナヴィ」が避難先を選んで道案内し、家族に安否を届けます。動けないときは、通報を家族に代わって頼めます。<br><b>座標は、AIに一度も渡しません。</b></p>
+    </div>
+    <img src="../../app/assets/senavi/smile.png" alt="">
+  </div>
+
+  <div>
+    <h2>アプリの流れ</h2>
+    <div class="flow">
+      <div class="shot"><img src="../screenshots/01_home.png" alt=""><div class="n">01</div><div class="t">ふだん</div><div class="d">雨雲レーダーと周辺の避難所。セナヴィが空模様をひとこと言います。</div></div>
+      <div class="shot"><img src="../screenshots/02_decide.png" alt=""><div class="n">02</div><div class="t">災害の日</div><div class="d">避難先と理由を3点。押さなくても、30秒で案内が始まります。</div></div>
+      <div class="shot"><img src="../screenshots/03_agentlog.png" alt=""><div class="n">03</div><div class="t">判断の記録</div><div class="d">AIに渡した入力・モデル名・コストが、すべて残ります。</div></div>
+      <div class="shot"><img src="../screenshots/04_friends.png" alt=""><div class="n">04</div><div class="t">家族の安否</div><div class="d">確認中 → 避難中 → 到着を、自動で家族に送ります。</div></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>ふだんの仕組みが、そのまま災害の日に効く</h2>
+      <table>
+        <tr><td><span class="pill p-day">ふだん</span></td><td><span class="pill p-dis">災害の日</span></td></tr>
+        <tr><td>セナヴィに天気を聞く</td><td>避難先を判断する（同じエージェント）</td></tr>
+        <tr><td>雨雲レーダーを見る</td><td>豪雨のハザード判断（同じタイル）</td></tr>
+        <tr><td>友だちと待ち合わせる</td><td>避難先で合流する（同じ機能）</td></tr>
+        <tr><td>帰宅を家族に知らせる</td><td>避難所への到着を知らせる（同じ仕組み）</td></tr>
+      </table>
+      <div class="faces">
+        <div><img src="../../app/assets/senavi/normal.png" alt="">通常</div>
+        <div><img src="../../app/assets/senavi/smile.png" alt="">にっこり</div>
+        <div><img src="../../app/assets/senavi/surprised.png" alt="">驚き</div>
+        <div><img src="../../app/assets/senavi/serious.png" alt="">真剣</div>
+        <div><img src="../../app/assets/senavi/running.png" alt="">走る</div>
+        <div><img src="../../app/assets/senavi/troubled.png" alt="">困った</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>審査基準への回答</h2>
+      <table>
+        <tr><td class="crit">④ 自律性</td><td>監視から到着判定・家族への連絡まで、人が押すボタンは0回</td></tr>
+        <tr><td class="crit">① セキュリティ</td><td>座標・氏名・連絡先をLLMに渡さない。送信前に機械的に検査する</td></tr>
+        <tr><td class="crit">② コスト</td><td>安いモデルで足切りしてから高いモデルへ。1件 $0.011、外部データはすべて無料</td></tr>
+        <tr><td class="crit">③ 信頼性</td><td>LLMが落ちても安全ルールだけで選定し、案内を止めない</td></tr>
+        <tr><td class="crit">⑤ 独創性</td><td>災害用機能の平時流用ではなく、逆。ふだん開く理由の方を本体にした</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <div>
+    <div class="stats">
+      <div class="stat"><b>0回</b>人が押すボタン</div>
+      <div class="stat"><b>$0.011</b>避難先の判断 1件</div>
+      <div class="stat"><b>¥0</b>外部データ・カード登録不要</div>
+      <div class="stat"><b>OrcaRouter</b>LLMのルーティングと検査</div>
+    </div>
+    <p class="note">本アプリは AI HACK 2026 の試作です。実際の災害での利用を想定しておらず、避難の判断は自治体の避難指示とご自身の状況を優先してください。<br>データ：気象庁 ／ 国土地理院 ／ ハザードマップポータルサイト ／ P2P地震情報 ／ OpenRouteService</p>
+  </div>
+  <div class="qr"><img src="qr_github.png" alt="">GitHub<br>コードは全部公開</div>
+  <div class="qr"><img src="qr_qiita.png" alt="">Qiita<br>解説記事</div>
+</div>
+
+</div></body></html>
