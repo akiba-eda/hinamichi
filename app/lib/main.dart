@@ -42,9 +42,71 @@ Future<void> main() async {
     return true;
   };
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  if (FirebaseAuth.instance.currentUser == null) await FirebaseAuth.instance.signInAnonymously();
-  runApp(const ProviderScope(child: HinamichiApp()));
+  final bootError = await _boot();
+  // 起動に失敗しても必ず何かを描く。ここで例外を素通しにすると、上の onError が
+  // 受けて runApp に届かず、真っ白な画面のまま止まる(実機で起きた)。
+  runApp(bootError == null ? const ProviderScope(child: HinamichiApp()) : _BootFailedApp(error: bootError));
+}
+
+/// Firebase の初期化と匿名サインイン。失敗の理由を返す(成功なら null)。
+/// 圏外・Wi-Fi 切れ・時計のずれで落ちる。ここが通らないと何も動かない。
+Future<Object?> _boot() async {
+  try {
+    if (Firebase.apps.isEmpty) await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    if (FirebaseAuth.instance.currentUser == null) await FirebaseAuth.instance.signInAnonymously();
+    return null;
+  } catch (e, st) {
+    debugPrint('[boot] $e\n$st');
+    return e;
+  }
+}
+
+/// 起動できなかったときの画面。理由と、もう一度試す手段だけを出す。
+class _BootFailedApp extends StatefulWidget {
+  final Object error;
+  const _BootFailedApp({required this.error});
+  @override
+  State<_BootFailedApp> createState() => _BootFailedAppState();
+}
+
+class _BootFailedAppState extends State<_BootFailedApp> {
+  bool _retrying = false;
+
+  Future<void> _retry() async {
+    setState(() => _retrying = true);
+    final err = await _boot();
+    if (!mounted) return;
+    if (err == null) {
+      runApp(const ProviderScope(child: HinamichiApp()));
+      return;
+    }
+    setState(() => _retrying = false);
+    showSenaviToast(userMessage(err, action: 'セナヴィに接続'), error: true);
+  }
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'ヒナミチ',
+        debugShowCheckedModeBanner: false,
+        theme: hinaTheme(),
+        navigatorKey: rootNavigatorKey,
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const SenaviAvatar(SenaviMood.troubled, size: 96),
+                const SizedBox(height: 12),
+                Text('セナヴィに接続できませんでした', style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                Text(userMessage(widget.error), style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                HinaButton.primary('もう一度試す', loading: _retrying, onPressed: _retrying ? null : _retry),
+              ]),
+            ),
+          ),
+        ),
+      );
 }
 
 /// 赤いエラー画面の代わり。何が壊れたかではなく、どうすればいいかだけを出す。
