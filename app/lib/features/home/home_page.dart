@@ -15,6 +15,7 @@ import '../../domain/weather.dart';
 import '../../domain/social.dart';
 import '../../state/providers.dart';
 import '../../ui/organisms/location_unavailable.dart';
+import '../settings/emergency_page.dart';
 import '../sos/sos_sheet.dart';
 import 'ask_sheet.dart';
 import '../../ui/atoms/atoms.dart';
@@ -89,7 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     try {
       await f();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e))));
+      showSenaviToast(userMessage(e), error: true);
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -450,16 +451,50 @@ class _SosButtonState extends ConsumerState<_SosButton> {
   }
 
   Future<void> _confirm() async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
+    // 何を誰に見せるかを、依頼する前に本人に見せる。以前は「本名・住所が見えます」と
+    // 一般論しか出しておらず、以前に登録した情報があることに気づかないまま
+    // 依頼が通っていた。
+    final emergency = ref.read(myEmergencyProvider).value;
+    final friends = ref.read(friendsProvider).value ?? const <FriendEntry>[];
+    final legalName = (emergency?['legalName'] as String?)?.trim() ?? '';
+
+    if (legalName.isEmpty) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('緊急時情報が未登録です'),
+          content: const Text('通報を代わりに頼むには、本名と住所が要ります。相手が確認したときにだけ見える情報で、AI には渡りません。'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('やめる')),
+            FilledButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('登録する')),
+          ],
+        ),
+      );
+      if (go == true && mounted) Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EmergencyPage()));
+      return;
+    }
+    if (friends.isEmpty) {
+      showSenaviToast('頼める相手がまだいないよ。友だちタブから家族を招待してね', error: true);
+      return;
+    }
+
+    final names = friends.map((f) => f.displayName).join('、');
+    final t = Theme.of(context).textTheme;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('通報を代わりに頼みますか?'),
-        content: const Text(
-          '家族・友人に「代わりに通報してほしい」と伝えます。'
-          '相手が確認を押すと、あなたの本名・住所・年齢・電話番号が相手にだけ見えます。\n\n'
-          '119番や自治体には繋がりません。',
-        ),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('頼む相手(${friends.length}人)', style: t.bodySmall),
+          Text(names, style: t.bodyLarge),
+          const SizedBox(height: 10),
+          Text('相手が「確認する」を押すと見える情報', style: t.bodySmall),
+          Text(legalName, style: t.bodyLarge),
+          if ((emergency?['address'] as String?)?.isNotEmpty == true) Text(emergency!['address'] as String, style: t.bodyLarge),
+          if ((emergency?['phone'] as String?)?.isNotEmpty == true) Text(emergency!['phone'] as String, style: t.bodyLarge),
+          const SizedBox(height: 10),
+          Text('119番や自治体には繋がりません。', style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
+        ]),
         actions: [
           TextButton(onPressed: () => Navigator.of(c).pop(false), child: const Text('やめる')),
           FilledButton(onPressed: () => Navigator.of(c).pop(true), child: const Text('依頼する')),
@@ -477,9 +512,9 @@ class _SosButtonState extends ConsumerState<_SosButton> {
             incidentId: widget.incident.id,
             disaster: widget.incident.type.label,
           );
-      messenger?.showSnackBar(SnackBar(content: Text('${r['sentTo']}人に通報を依頼しました')));
+      showSenaviToast('${r['sentTo']}人に頼んだよ。相手が確認すると、$legalNameさんの本名と住所が見えるようになる', mood: SenaviMood.serious, duration: const Duration(seconds: 6));
     } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '依頼'))));
+      showSenaviToast(userMessage(e, action: '依頼'), error: true);
     } finally {
       if (mounted) setState(() => _sending = false);
     }

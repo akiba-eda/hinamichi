@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
 import '../../domain/models.dart';
+import '../../core/nav.dart';
 import '../../domain/senavi.dart';
 import '../atoms/atoms.dart';
 
@@ -517,6 +518,42 @@ void showRerouteToast(BuildContext context, String text) {
   );
   overlay.insert(entry);
   Timer(const Duration(seconds: 4), () => entry.remove());
+}
+
+// ---------------------------------------------------------------- SenaviToast
+/// 画面上部にセナヴィの吹き出しで出す通知。
+///
+/// Material の SnackBar(画面下の黒い帯)はこのアプリの世界観と合わない上、
+/// シートを閉じた直後だと出す先の context が死んでいて消えることがあった。
+/// ここは rootNavigatorKey の Overlay に直接載せるので、どこから呼んでも出る。
+///
+/// 口調はセナヴィ本人。失敗も「困った顔」で伝えて、赤いバナーにしない
+/// ── 避難の最中に見るものなので、責める見た目にしない。
+void showSenaviToast(String text, {SenaviMood? mood, bool error = false, Duration duration = const Duration(seconds: 4)}) {
+  final overlay = rootNavigatorKey.currentState?.overlay;
+  if (overlay == null) return;
+  final context = overlay.context;
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => Positioned(
+      top: MediaQuery.of(context).padding.top + 12,
+      left: 16,
+      right: 16,
+      child: Material(
+        color: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => entry.remove(),
+          child: HinaCard(
+            child: SenaviSpeech(mood: mood ?? (error ? SenaviMood.troubled : SenaviMood.smile), text: text, avatarSize: 44),
+          ).animate().slideY(begin: -0.6, end: 0, duration: 350.ms, curve: Curves.easeOutBack).fadeIn(),
+        ),
+      ),
+    ),
+  );
+  overlay.insert(entry);
+  Timer(duration, () {
+    if (entry.mounted) entry.remove();
+  });
 }
 
 // ---------------------------------------------------------------- DisasterTypeSelector

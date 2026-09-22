@@ -61,14 +61,13 @@ class _ApprovalBodyState extends ConsumerState<_ApprovalBody> {
         Expanded(
           child: HinaButton.primary('送信する', loading: sending, onPressed: () async {
             setState(() => sending = true);
-            final messenger = ScaffoldMessenger.maybeOf(context);
             final nav = Navigator.of(context);
             try {
               final r = await ref.read(apiProvider).messageFriends(widget.ctrl.text.trim());
               nav.pop();
-              messenger?.showSnackBar(SnackBar(content: Text('${r['sent']}人に送りました: ${r['text']}')));
+              showSenaviToast('${r['sent']}人に送ったよ: ${r['text']}');
             } catch (e) {
-              messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '送信'))));
+              showSenaviToast(userMessage(e, action: '送信'), error: true);
             } finally {
               if (mounted) setState(() => sending = false);
             }

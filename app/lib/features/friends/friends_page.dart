@@ -194,7 +194,7 @@ class FriendsPage extends ConsumerWidget {
                 try {
                   await ref.read(apiProvider).setNote(c.text.trim());
                 } catch (e) {
-                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
+                  showSenaviToast(userMessage(e), error: true);
                 }
               }
               if (ctx.mounted) Navigator.pop(ctx);
@@ -226,7 +226,7 @@ class FriendsPage extends ConsumerWidget {
                 await ref.read(apiProvider).acceptFriend(c.text.trim().toUpperCase(), relation: r.text.trim().isEmpty ? null : r.text.trim());
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (e) {
-                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
+                showSenaviToast(userMessage(e), error: true);
               }
             },
             child: const Text('追加'),
@@ -302,7 +302,7 @@ class _InviteCode extends StatelessWidget {
     return InkWell(
       onTap: () async {
         await Clipboard.setData(ClipboardData(text: code));
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('招待コードをコピーしました')));
+        showSenaviToast('招待コードをコピーしたよ');
       },
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text('招待コード: $code', style: t.bodySmall),

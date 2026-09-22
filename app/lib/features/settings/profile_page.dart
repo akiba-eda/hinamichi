@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../core/user_message.dart';
+import '../../ui/molecules/molecules.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -160,7 +161,6 @@ class ProfilePage extends ConsumerWidget {
   }
 
   Future<void> _pickPhoto(BuildContext sheet, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(sheet);
     try {
       // 256px / 品質80 まで落として選ばせる。Firestore のドキュメントに
       // そのまま入れるので、ここで小さくしておかないと 1MB 上限に当たる。
@@ -168,13 +168,13 @@ class ProfilePage extends ConsumerWidget {
       if (picked == null) return;
       final bytes = await picked.readAsBytes();
       if (bytes.lengthInBytes > 180 * 1024) {
-        messenger.showSnackBar(const SnackBar(content: Text('画像が大きすぎます。別の写真を選んでください')));
+        showSenaviToast('その写真は大きすぎるみたい。別の写真を選んでね', error: true);
         return;
       }
       await _save(ref, avatarImage: base64Encode(bytes), avatarMood: '');
       if (sheet.mounted) Navigator.pop(sheet);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(userMessage(e, action: '画像を読み込み'))));
+      showSenaviToast(userMessage(e, action: '画像を読み込み'), error: true);
     }
   }
 
@@ -224,7 +224,7 @@ class ProfilePage extends ConsumerWidget {
                 try {
                   await ref.read(apiProvider).setNote(c.text.trim());
                 } catch (e) {
-                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
+                  showSenaviToast(userMessage(e), error: true);
                 }
               }
               if (ctx.mounted) Navigator.pop(ctx);

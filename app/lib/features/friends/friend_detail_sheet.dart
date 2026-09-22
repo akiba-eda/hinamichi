@@ -11,6 +11,7 @@ import '../../domain/social.dart';
 import '../../mock/mock_backend.dart';
 import '../../ui/atoms/atoms.dart';
 import 'chat_page.dart';
+import '../../ui/molecules/molecules.dart';
 
 /// フレンドのアイコン / カードをタップしたときに出る詳細。
 ///
@@ -170,7 +171,7 @@ class _FriendDetail extends ConsumerWidget {
                         ref.read(apiProvider).sendMessage(toUid: f.entry.uid, reaction: r.emoji);
                       }
                       Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${r.emoji} を送りました')));
+                      showSenaviToast('${r.emoji} を送ったよ');
                     },
                   ),
                 ),

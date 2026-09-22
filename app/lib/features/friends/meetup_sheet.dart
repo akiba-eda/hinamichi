@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/user_message.dart';
+import '../../ui/molecules/molecules.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -91,7 +92,7 @@ class _MeetupSheetState extends ConsumerState<_MeetupSheet> {
       ref.read(selectedTabProvider.notifier).state = 0;
       Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '合流を作成'))));
+      showSenaviToast(userMessage(e, action: '合流を作成'), error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

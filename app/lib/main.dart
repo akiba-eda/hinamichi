@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app/theme/hina_colors.dart';
 import 'app/theme/hina_theme.dart';
 import 'core/config.dart';
+import 'core/nav.dart';
 import 'core/notifications.dart';
 import 'domain/senavi.dart';
 import 'features/friends/friends_page.dart';
@@ -74,7 +75,6 @@ class HinamichiApp extends ConsumerStatefulWidget {
 }
 
 class _HinamichiAppState extends ConsumerState<HinamichiApp> {
-  final _navKey = GlobalKey<NavigatorState>();
   final _seenAlerts = <String>{};
 
   /// 01 スプラッシュを抜けたか。アラートが来たら待たずに本体へ送る。
@@ -169,13 +169,13 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     if (!mounted) return;
     ref.read(selectedTabProvider.notifier).state = 0;
     setState(() => _started = true);
-    _navKey.currentState?.popUntil((r) => r.isFirst);
+    rootNavigatorKey.currentState?.popUntil((r) => r.isFirst);
     try {
       await ref.read(agentControllerProvider).runForAlert(alertId);
     } catch (e) {
       debugPrint('runAgent failed: $e');
-      final ctx = _navKey.currentContext;
-      if (ctx != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e, action: 'セナヴィに接続'))));
+      final ctx = rootNavigatorKey.currentContext;
+      showSenaviToast(userMessage(e, action: 'セナヴィに接続'), error: true);
     }
   }
 
@@ -185,7 +185,7 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
       title: 'ヒナミチ',
       debugShowCheckedModeBanner: false,
       theme: hinaTheme(),
-      navigatorKey: _navKey,
+      navigatorKey: rootNavigatorKey,
       home: _started
           ? Scaffold(
               body: IndexedStack(index: ref.watch(selectedTabProvider), children: const [HomePage(), MapPage(), FriendsPage(), SettingsPage()]),

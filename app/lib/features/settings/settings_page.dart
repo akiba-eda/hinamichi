@@ -97,11 +97,7 @@ class SettingsPage extends ConsumerWidget {
           value: ref.watch(locationSharingProvider),
           onChanged: (v) async {
             final ok = await ref.read(locationSharingProvider.notifier).set(v);
-            if (!ok && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('位置情報の許可が必要です。設定アプリから「常に許可」にしてください')),
-              );
-            }
+            if (!ok) showSenaviToast('位置情報の許可が要るよ。設定アプリで「常に許可」にしてね', error: true);
           },
         ),
         if (ref.watch(locationSharingProvider))

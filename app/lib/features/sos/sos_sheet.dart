@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/user_message.dart';
+import '../../ui/molecules/molecules.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -78,12 +79,11 @@ class _SosBodyState extends ConsumerState<_SosBody> {
         onPressed: () async {
           setState(() => _closing = true);
           final nav = Navigator.of(context);
-          final messenger = ScaffoldMessenger.maybeOf(context);
           try {
             await ref.read(apiProvider).closeSos(sos.id);
             nav.pop();
           } catch (e) {
-            messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '閉じる'))));
+            showSenaviToast(userMessage(e, action: '閉じる'), error: true);
           } finally {
             if (mounted) setState(() => _closing = false);
           }

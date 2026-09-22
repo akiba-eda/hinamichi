@@ -104,7 +104,7 @@ class PlacesPage extends ConsumerWidget {
         await ref.read(apiProvider).removePlace(p.id);
       }
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '削除'))));
+      showSenaviToast(userMessage(e, action: '削除'), error: true);
     }
   }
 }
@@ -205,7 +205,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
       }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '保存'))));
+      showSenaviToast(userMessage(e, action: '保存'), error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

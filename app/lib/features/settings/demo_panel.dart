@@ -10,6 +10,7 @@ import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
 import 'manual_location_sheet.dart';
 import '../../core/user_message.dart';
+import '../../ui/molecules/molecules.dart';
 
 /// 設計書 §14.2 — fire scenarios anchored at the device's current location; simulate movement; inject LLM failure.
 class DemoPanel extends ConsumerStatefulWidget {
@@ -37,7 +38,7 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
     try {
       await f();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e))));
+      showSenaviToast(userMessage(e), error: true);
     } finally {
       if (mounted) setState(() => busy = null);
     }
@@ -87,21 +88,21 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
 
   Future<void> _simulateArrival() async {
     if (!ref.read(mockModeProvider)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('モックモードのときだけ動きます')));
+      showSenaviToast('これはモックモードのときだけ動くよ', error: true);
       return;
     }
     final loc = ref.read(locationProvider) ?? await ref.read(locationProvider.notifier).refresh();
     final b = ref.read(mockBackendProvider.notifier)..seedPlaces(loc.point);
     b.simulateArrival('mock_mother');
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('友だち画面の「できごと」に出ます')));
+      showSenaviToast('友だち画面の「できごと」に出るよ');
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
   }
 
   void _cycleWeather() {
     if (!ref.read(mockModeProvider)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('モックモードのときだけ切り替えられます')));
+      showSenaviToast('これはモックモードのときだけ切り替えられるよ', error: true);
       return;
     }
     ref.read(mockBackendProvider.notifier).cycleWeather();
@@ -122,7 +123,7 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
     final inc = ref.read(activeIncidentProvider);
     final pts = inc?.route?.points;
     if (inc == null || pts == null || pts.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('経路がありません(避難誘導中に使ってください)')));
+      showSenaviToast('まだ経路がないよ。避難の案内が始まってから使ってね', error: true);
       return;
     }
     _mover?.cancel();

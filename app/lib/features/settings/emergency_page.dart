@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/user_message.dart';
+import '../../ui/molecules/molecules.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -97,9 +98,8 @@ class _EmergencyPageState extends ConsumerState<EmergencyPage> {
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    final messenger = ScaffoldMessenger.maybeOf(context);
     if (name.isEmpty) {
-      messenger?.showSnackBar(const SnackBar(content: Text('本名は必須です。通報を代行してもらうのに要ります')));
+      showSenaviToast('本名を入れてね。通報を代わりに頼むときに要るんだ', error: true);
       return;
     }
     setState(() => _saving = true);
@@ -113,9 +113,9 @@ class _EmergencyPageState extends ConsumerState<EmergencyPage> {
           );
       ref.invalidate(myEmergencyProvider);
       nav.pop();
-      messenger?.showSnackBar(const SnackBar(content: Text('保存しました')));
+      showSenaviToast('保存したよ。相手が確認したときだけ見える情報だから安心してね');
     } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '保存'))));
+      showSenaviToast(userMessage(e, action: '保存'), error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
