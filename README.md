@@ -243,6 +243,7 @@ git clone https://github.com/akiba-eda/hinamichi.git && cd hinamichi
 | [セットアップ手順](docs/SETUP.md) | 必要なアカウント / サーバー / Firebase / アプリ / OrcaRouter コンソール設定 / API 一覧 |
 | [コスト実測ログ](docs/orca_cost_log.md) | OrcaRouter の `/v1/generation` で照合した確定値と、LLM に渡した入力そのもの |
 | [スクリーンショット](docs/screenshots/) | 平時 / 避難先の提案 / 判断の記録 / 家族の安否 |
+| [デモ動画](docs/demo/hinamichi_demo.mp4) | 114秒。平時 → 種別で避難場所が変わる → 地震を発火 → 30秒で自動承認 → 避難中 → 判断の記録。エミュレータの画面録画(実データ・本番サーバー) |
 
 画面設計のデザインカンプ: [避難フロー6画面](docs/design_sheet_2.png) /
 [主要6画面](docs/design_sheet_3.png) / [セナヴィ表情シート](docs/senavi_sheet_v2.png)
