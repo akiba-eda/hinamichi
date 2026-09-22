@@ -77,8 +77,8 @@ DEMO_ADMIN_UIDS=                               # 空=誰でもデモ操作可。
 
 | 経路 | 1人あたり | 全体/日 |
 |---|---|---|
-| `/api/demo/fire` | 10分に10回 | 300回(約 $3) |
-| `/api/agent/run` `/api/agent/reselect` | 10分に10回 | — |
+| `/api/demo/fire` | 10分に30回 | 300回(約 $3) |
+| `/api/agent/run` `/api/agent/reselect` | 10分に30回 | — |
 | `/api/senavi/ask` `/api/friends/message` | 10分に30回 | — |
 
 超えると 429 `rate_limited`。カウンタは Firestore の `quota/` に置き、サーバーだけが触る。

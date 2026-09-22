@@ -46,10 +46,13 @@ export async function assertQuota(uid: string, key: string, rule: QuotaRule, now
 
 /** 経路ごとの上限。数字はデモで困らない範囲で、連打と量産を止める値。 */
 export const QUOTA = {
-  /** 1回 $0.011。会場で1人が10分に10回も発火することはない。1日300回で約 $3。 */
-  demoFire: { perUid: 10, windowMin: 10, globalPerDay: 300 } satisfies QuotaRule,
-  agentRun: { perUid: 10, windowMin: 10 } satisfies QuotaRule,
-  reselect: { perUid: 10, windowMin: 10 } satisfies QuotaRule,
+  /**
+   * 1回 $0.011。展示では1台の端末を大勢が順番に触るので、同じ uid で
+   * 連打になる。10回だと混雑時に止まるため 30回。全体の 300回/日(約 $3)は残す。
+   */
+  demoFire: { perUid: 30, windowMin: 10, globalPerDay: 300 } satisfies QuotaRule,
+  agentRun: { perUid: 30, windowMin: 10 } satisfies QuotaRule,
+  reselect: { perUid: 30, windowMin: 10 } satisfies QuotaRule,
   /** 1問 $0.00005 なので緩め。 */
   ask: { perUid: 30, windowMin: 10 } satisfies QuotaRule,
   message: { perUid: 30, windowMin: 10 } satisfies QuotaRule,
