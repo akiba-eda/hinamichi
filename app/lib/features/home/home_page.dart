@@ -21,7 +21,6 @@ import 'ask_sheet.dart';
 import '../../ui/atoms/atoms.dart';
 import '../../ui/molecules/molecules.dart';
 import '../../ui/organisms/hina_map.dart';
-import '../agent_log/agent_log_page.dart';
 import '../friends/friend_detail_sheet.dart';
 import '../shelter/shelter_detail_page.dart';
 import 'approval_sheet.dart';
@@ -298,21 +297,15 @@ class _HomePageState extends ConsumerState<HomePage> {
       body = HinaCard(child: Column(children: [
         SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: inc.shelter != null ? '${inc.shelter!.name} / 同意済みの家族・友人に共有しました' : null),
         const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: HinaButton.secondary('判断の記録', icon: Icons.receipt_long_outlined, onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AgentLogPage(incidentId: inc.id))))),
-          const SizedBox(width: 8),
-          Expanded(child: HinaButton.primary('ホームに戻る', onPressed: () => _act(() => ctrl.close(inc.id)))),
-        ]),
+        // 記録は自動で残っていて設定から開ける。ここにボタンを並べると
+        // 端末の文字サイズによっては収まらず、避難後の画面で読めない字が出る。
+        HinaButton.primary('ホームに戻る', onPressed: () => _act(() => ctrl.close(inc.id))),
       ]));
     } else if (inc != null && (inc.state == IncidentState.monitoringStay || inc.state == IncidentState.notRelevant)) {
       body = HinaCard(child: Column(children: [
         SenaviSpeech(mood: senavi.mood, text: senavi.line, sub: inc.reasons.join(' / ')),
         const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: HinaButton.secondary('判断の記録', onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AgentLogPage(incidentId: inc.id))))),
-          const SizedBox(width: 8),
-          Expanded(child: HinaButton.primary('了解', onPressed: () => _act(() => ctrl.close(inc.id)))),
-        ]),
+        HinaButton.primary('了解', onPressed: () => _act(() => ctrl.close(inc.id))),
       ]));
     } else {
       // 平時。雨に動きがあるときはそれを補足に出し、無ければこの場所のハザードに譲る。
