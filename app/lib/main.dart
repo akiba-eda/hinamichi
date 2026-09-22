@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
+import 'core/user_message.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +15,7 @@ import 'app/theme/hina_colors.dart';
 import 'app/theme/hina_theme.dart';
 import 'core/config.dart';
 import 'core/notifications.dart';
+import 'domain/senavi.dart';
 import 'features/friends/friends_page.dart';
 import 'features/home/home_page.dart';
 import 'features/map/map_page.dart';
@@ -21,12 +24,47 @@ import 'features/splash/splash_page.dart';
 import 'firebase_options.dart';
 import 'state/providers.dart';
 import 'ui/atoms/atoms.dart';
+import 'ui/molecules/molecules.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 描画中に例外が起きたときの既定は、英語のスタックとソースが載った赤い画面。
+  // 利用者に見せるものではないので、セナヴィの言葉に差し替える。原因はログに残す。
+  ErrorWidget.builder = (details) {
+    debugPrint('[widget error] ${details.exceptionAsString()}');
+    return const _FriendlyError();
+  };
+  // 描画の外(非同期)で誰も受け取らなかった例外。落とさずログに残す。
+  PlatformDispatcher.instance.onError = (e, st) {
+    debugPrint('[uncaught] $e\n$st');
+    return true;
+  };
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (FirebaseAuth.instance.currentUser == null) await FirebaseAuth.instance.signInAnonymously();
   runApp(const ProviderScope(child: HinamichiApp()));
+}
+
+/// 赤いエラー画面の代わり。何が壊れたかではなく、どうすればいいかだけを出す。
+class _FriendlyError extends StatelessWidget {
+  const _FriendlyError();
+  @override
+  Widget build(BuildContext context) => Material(
+        color: HinaColors.bg,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const SenaviAvatar(SenaviMood.troubled, size: 96),
+              const SizedBox(height: 12),
+              Text('うまく表示できませんでした', style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+              const SizedBox(height: 6),
+              Text('画面を開き直すか、アプリを再起動してください。', style: Theme.of(context).textTheme.bodySmall, textAlign: TextAlign.center),
+            ]),
+          ),
+        ),
+      );
 }
 
 class HinamichiApp extends ConsumerStatefulWidget {
@@ -137,7 +175,7 @@ class _HinamichiAppState extends ConsumerState<HinamichiApp> {
     } catch (e) {
       debugPrint('runAgent failed: $e');
       final ctx = _navKey.currentContext;
-      if (ctx != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('セナヴィに接続できませんでした: $e')));
+      if (ctx != null) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e, action: 'セナヴィに接続'))));
     }
   }
 

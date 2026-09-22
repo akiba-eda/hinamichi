@@ -20,7 +20,7 @@ export const incidentIdFor = (alertId: string, uid: string) => `${alertId}__${ui
 
 export async function loadAlert(alertId: string): Promise<AlertDoc> {
   const s = await db().collection(COL.alerts).doc(alertId).get();
-  if (!s.exists) throw new HttpError(404, "alert not found", "not_found");
+  if (!s.exists) throw new HttpError(404, "この警報は見つかりませんでした", "not_found");
   return { id: s.id, ...(s.data() as any) } as AlertDoc;
 }
 
@@ -29,7 +29,7 @@ export async function startIncident(opts: {
   demo?: { failLlm?: boolean }; force?: boolean;
 }): Promise<{ incidentId: string; result: RunOutput; reused: boolean }> {
   const alert = await loadAlert(opts.alertId);
-  if (alert.demoTargetUid && alert.demoTargetUid !== opts.uid) throw new HttpError(403, "demo alert is for another user", "forbidden");
+  if (alert.demoTargetUid && alert.demoTargetUid !== opts.uid) throw new HttpError(403, "この警報は別の端末向けです", "forbidden");
   const incidentId = incidentIdFor(alert.id, opts.uid);
   const existing = await incidentRef(incidentId).get();
   if (existing.exists && !opts.force) {
@@ -44,9 +44,9 @@ export async function startIncident(opts: {
 
 export async function reselect(opts: { uid: string; incidentId: string; location: { lat: number; lng: number }; locationSource: LocationSource; reason: "crowd" | "user" | "alert" | "route"; demo?: { failLlm?: boolean } }) {
   const snap = await incidentRef(opts.incidentId).get();
-  if (!snap.exists) throw new HttpError(404, "incident not found", "not_found");
+  if (!snap.exists) throw new HttpError(404, "避難の記録が見つかりませんでした", "not_found");
   const d = snap.data() as any;
-  if (d.uid !== opts.uid) throw new HttpError(403, "not your incident", "forbidden");
+  if (d.uid !== opts.uid) throw new HttpError(403, "この避難はあなたのものではありません", "forbidden");
   const alert = await loadAlert(d.alertId);
   const prev = d.shelter?.id as string | undefined;
   await setIncident(opts.incidentId, { state: "reselecting", reselectReason: opts.reason });
@@ -68,9 +68,9 @@ export type Action = "start" | "later" | "arrived" | "safe_zone" | "close";
 
 export async function applyAction(uid: string, incidentId: string, action: Action, via: "user" | "timeout" | "geofence") {
   const snap = await incidentRef(incidentId).get();
-  if (!snap.exists) throw new HttpError(404, "incident not found", "not_found");
+  if (!snap.exists) throw new HttpError(404, "避難の記録が見つかりませんでした", "not_found");
   const d = snap.data() as any;
-  if (d.uid !== uid) throw new HttpError(403, "not your incident", "forbidden");
+  if (d.uid !== uid) throw new HttpError(403, "この避難はあなたのものではありません", "forbidden");
   const log = new IncidentLog(incidentId);
   let state: IncidentState = d.state;
   let friendMsg: string | undefined;
@@ -130,9 +130,9 @@ export async function settleIncidentCost(incidentId: string) {
 /** Position update while guiding: arrival geofence (100 m). Nothing stored. */
 export async function updatePosition(uid: string, incidentId: string, p: { lat: number; lng: number }) {
   const snap = await incidentRef(incidentId).get();
-  if (!snap.exists) throw new HttpError(404, "incident not found", "not_found");
+  if (!snap.exists) throw new HttpError(404, "避難の記録が見つかりませんでした", "not_found");
   const d = snap.data() as any;
-  if (d.uid !== uid) throw new HttpError(403, "not your incident", "forbidden");
+  if (d.uid !== uid) throw new HttpError(403, "この避難はあなたのものではありません", "forbidden");
   if (!["guiding", "fallback_guiding", "reselecting"].includes(d.state) || !d.shelter) return { state: d.state as IncidentState, distanceM: null };
   // 到着判定は避難場所までの直線距離(ジオフェンス)、残り時間は経路に沿った長さ。
   // 役割が違うので分けている。

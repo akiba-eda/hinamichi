@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -38,7 +39,7 @@ class _MeetupBannerState extends ConsumerState<MeetupBanner> {
         await ref.read(apiProvider).leaveMeetup(widget.meetup.id);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('合流から抜けられませんでした: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '合流から抜ける'))));
     } finally {
       if (mounted) setState(() => _leaving = false);
     }

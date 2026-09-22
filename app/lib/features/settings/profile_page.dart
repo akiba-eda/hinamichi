@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../core/user_message.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,7 +174,7 @@ class ProfilePage extends ConsumerWidget {
       await _save(ref, avatarImage: base64Encode(bytes), avatarMood: '');
       if (sheet.mounted) Navigator.pop(sheet);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('画像を読み込めませんでした: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(userMessage(e, action: '画像を読み込み'))));
     }
   }
 
@@ -223,7 +224,7 @@ class ProfilePage extends ConsumerWidget {
                 try {
                   await ref.read(apiProvider).setNote(c.text.trim());
                 } catch (e) {
-                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('$e')));
+                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
                 }
               }
               if (ctx.mounted) Navigator.pop(ctx);

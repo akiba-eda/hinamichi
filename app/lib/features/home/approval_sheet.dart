@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -67,7 +68,7 @@ class _ApprovalBodyState extends ConsumerState<_ApprovalBody> {
               nav.pop();
               messenger?.showSnackBar(SnackBar(content: Text('${r['sent']}人に送りました: ${r['text']}')));
             } catch (e) {
-              messenger?.showSnackBar(SnackBar(content: Text('送信できませんでした: $e')));
+              messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '送信'))));
             } finally {
               if (mounted) setState(() => sending = false);
             }

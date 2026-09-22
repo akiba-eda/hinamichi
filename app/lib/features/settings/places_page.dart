@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -38,7 +39,7 @@ class PlacesPage extends ConsumerWidget {
       ),
       body: places.when(
         loading: () => const Center(child: CircularProgressIndicator(color: HinaColors.sky)),
-        error: (e, _) => Center(child: Padding(padding: const EdgeInsets.all(32), child: Text('$e', style: t.bodySmall))),
+        error: (e, _) => Center(child: Padding(padding: const EdgeInsets.all(32), child: Text(userMessage(e, action: '場所を読み込み'), style: t.bodySmall))),
         data: (list) => ListView(padding: const EdgeInsets.only(bottom: 96), children: [
           Padding(
             padding: const EdgeInsets.all(HinaSpace.m),
@@ -103,7 +104,7 @@ class PlacesPage extends ConsumerWidget {
         await ref.read(apiProvider).removePlace(p.id);
       }
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('削除できませんでした: $e')));
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '削除'))));
     }
   }
 }
@@ -204,7 +205,7 @@ class _PlaceEditorState extends ConsumerState<_PlaceEditor> {
       }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e, action: '保存'))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -9,6 +9,7 @@ import '../../mock/mock_backend.dart';
 import '../../state/providers.dart';
 import '../../ui/atoms/atoms.dart';
 import 'manual_location_sheet.dart';
+import '../../core/user_message.dart';
 
 /// 設計書 §14.2 — fire scenarios anchored at the device's current location; simulate movement; inject LLM failure.
 class DemoPanel extends ConsumerStatefulWidget {
@@ -36,7 +37,7 @@ class _DemoPanelState extends ConsumerState<DemoPanel> {
     try {
       await f();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) setState(() => busy = null);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -82,7 +83,7 @@ class _SosBodyState extends ConsumerState<_SosBody> {
             await ref.read(apiProvider).closeSos(sos.id);
             nav.pop();
           } catch (e) {
-            messenger?.showSnackBar(SnackBar(content: Text('閉じられませんでした: $e')));
+            messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '閉じる'))));
           } finally {
             if (mounted) setState(() => _closing = false);
           }

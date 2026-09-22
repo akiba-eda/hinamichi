@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../core/config.dart';
@@ -88,7 +89,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     try {
       await f();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('エラー: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(userMessage(e))));
     } finally {
       if (mounted) setState(() => _acting = false);
     }
@@ -478,7 +479,7 @@ class _SosButtonState extends ConsumerState<_SosButton> {
           );
       messenger?.showSnackBar(SnackBar(content: Text('${r['sentTo']}人に通報を依頼しました')));
     } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text('依頼できませんでした: $e')));
+      messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '依頼'))));
     } finally {
       if (mounted) setState(() => _sending = false);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/user_message.dart';
 
 import '../../app/theme/hina_colors.dart';
 import '../../app/theme/hina_theme.dart';
@@ -114,7 +115,7 @@ class _EmergencyPageState extends ConsumerState<EmergencyPage> {
       nav.pop();
       messenger?.showSnackBar(const SnackBar(content: Text('保存しました')));
     } catch (e) {
-      messenger?.showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
+      messenger?.showSnackBar(SnackBar(content: Text(userMessage(e, action: '保存'))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

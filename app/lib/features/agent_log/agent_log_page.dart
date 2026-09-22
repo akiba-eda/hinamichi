@@ -6,6 +6,7 @@ import '../../core/config.dart';
 import '../../domain/senavi.dart';
 import '../../state/providers.dart';
 import '../../ui/molecules/molecules.dart';
+import '../../core/user_message.dart';
 
 enum _Tab { all, user, judge }
 
@@ -56,7 +57,7 @@ class _AgentLogPageState extends ConsumerState<AgentLogPage> {
               Expanded(
                 child: ref.watch(agentLogProvider(id)).when(
                       loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(child: Text('$e')),
+                      error: (e, _) => Center(child: Text(userMessage(e, action: '記録を読み込み'))),
                       data: (all) {
                         final list = all.where((e) => tab == _Tab.all || (tab == _Tab.user ? e.forUser : e.forJudge)).toList();
                         if (list.isEmpty) return Center(child: Text('この表示に該当する記録はありません', style: t.bodySmall));

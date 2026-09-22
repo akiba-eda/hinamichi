@@ -12,6 +12,7 @@ import '../../ui/molecules/molecules.dart';
 import '../../mock/mock_backend.dart';
 import '../../domain/social.dart';
 import 'friend_detail_sheet.dart';
+import '../../core/user_message.dart';
 
 /// 並び替え。災害時は「危ない人から」、平時は「最近動いた人から」見たい。
 enum FriendSort { byStatus, byUpdated }
@@ -137,7 +138,7 @@ class FriendsPage extends ConsumerWidget {
             ),
             friends.when(
               loading: () => const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator(color: HinaColors.sky))),
-              error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text('読み込めませんでした: $e', style: t.bodySmall)),
+              error: (e, _) => Padding(padding: const EdgeInsets.all(16), child: Text(userMessage(e, action: '読み込み'), style: t.bodySmall)),
               data: (list) => list.isEmpty ? const _Empty() : Column(children: [for (final f in _sorted(ref, list, sort)) _FriendCard(f)]),
             ),
           ]),
@@ -193,7 +194,7 @@ class FriendsPage extends ConsumerWidget {
                 try {
                   await ref.read(apiProvider).setNote(c.text.trim());
                 } catch (e) {
-                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('\$e')));
+                  if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
                 }
               }
               if (ctx.mounted) Navigator.pop(ctx);
@@ -225,7 +226,7 @@ class FriendsPage extends ConsumerWidget {
                 await ref.read(apiProvider).acceptFriend(c.text.trim().toUpperCase(), relation: r.text.trim().isEmpty ? null : r.text.trim());
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (e) {
-                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('$e')));
+                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(userMessage(e))));
               }
             },
             child: const Text('追加'),
