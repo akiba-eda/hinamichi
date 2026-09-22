@@ -2,11 +2,11 @@
 :root{--bg:#F7F5F0;--card:#FFFFFF;--ink:#2B2B2B;--sub:#7A7570;--line:#ECE8E1;--sky:#5AA8D6;--sun:#F2C94C;--mist:#C8E6E9;--alert:#E57373;--safe:#7FB366;--assess:#F2C94C;--evac:#F0A24B;--arrived:#8E7CC3;--unknown:#9E9E9E}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-feature-settings:"palt"}
-.card{background:var(--card);border-radius:4mm;box-shadow:0 1mm 4mm rgba(43,43,43,.06)}
-.phone{background:#1E252E;border-radius:6.5mm;padding:1.5mm;box-shadow:0 1.2mm 4mm rgba(43,43,43,.14)}
+.card{background:var(--card);border-radius:4mm}
+.phone{background:#1E252E;border-radius:6.5mm;padding:1.5mm}
 .phone img{display:block;width:100%;aspect-ratio:1080/2400;object-fit:cover;border-radius:5.2mm}
 .num{display:inline-flex;align-items:center;justify-content:center;width:5.6mm;height:5.6mm;border-radius:50%;background:var(--ink);color:#fff;font-size:8pt;font-weight:900;flex:none}
-.chip{display:inline-block;background:rgba(255,255,255,.94);color:var(--ink);font-size:7.2pt;font-weight:700;padding:1.4mm 3mm;border-radius:99px;box-shadow:0 .8mm 2.4mm rgba(0,0,0,.08)}
+.chip{display:inline-block;background:rgba(255,255,255,.94);color:var(--ink);font-size:7.2pt;font-weight:700;padding:1.4mm 3mm;border-radius:99px}
 .chip b{color:#E38B1C}
 .h{font-size:9.6pt;font-weight:900}
 .d{font-size:7pt;line-height:1.5;color:var(--sub)}
