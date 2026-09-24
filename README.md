@@ -12,7 +12,7 @@
 ![app](https://img.shields.io/badge/app-Flutter-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![server](https://img.shields.io/badge/server-TypeScript_%2F_Vercel_Functions-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![LLM](https://img.shields.io/badge/LLM-OrcaRouter-5B4BE1?style=flat-square)
-![tests](https://img.shields.io/badge/tests-server_75_%7C_app_49_passing-2EA44F?style=flat-square)
+![tests](https://img.shields.io/badge/tests-server_77_%7C_app_56_passing-2EA44F?style=flat-square)
 ![cost](https://img.shields.io/badge/cost-%240.011_%2F_1件-2EA44F?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-757575?style=flat-square)
 
@@ -247,6 +247,23 @@ git clone https://github.com/akiba-eda/hinamichi.git && cd hinamichi
 
 画面設計のデザインカンプ: [避難フロー6画面](docs/design_sheet_2.png) /
 [主要6画面](docs/design_sheet_3.png) / [セナヴィ表情シート](docs/senavi_sheet_v2.png)
+
+---
+
+## 現状と残課題(2026-09-24 時点)
+
+AI HACK 2026 #2 に提出し、9/23 のブース展示と発表を終えた状態です。本番(Vercel + Firebase Spark)は
+動いたままにしてあり、`--dart-define=KIOSK=true` でビルドした端末でそのまま体験できます。
+続きを引き継ぐ人のために、分かっている課題を残します。
+
+| 課題 | 現状 | 影響 |
+|---|---|---|
+| OrcaRouter の `route: "fallback"` が主モデルを上書きする | `models: [...]` を送ると `model`(Named Router)は無視され、`ORCA_FALLBACK_*` の**先頭**が主モデルになる(ヘッダ `x-orca-route` で確認)。実際に動いていたのは `hina-decide` ではなく鎖の先頭 `claude-sonnet-5` | 上の表の観測モデル名は正しいが、「Named Router が選んだ」は不正確。直すなら `server/lib/orca.ts` で `models: [router, ...chain]` にする |
+| Anthropic の応答が遅い時間帯がある | 9/23 朝に Sonnet 5 / Opus 5 が 30 秒超になり、判断が全件ルール選定に落ちた(案内は止まらなかった) | LLM 予算 28 秒の内側で速いモデルを先頭に置くか、タイムアウト時に次のモデルへ降りる処理が要る |
+| デモ発火の管理者リストが空 | `DEMO_ADMIN_UIDS` 未設定 = サインイン済みなら誰でも発火できる。回数制限(10分30回 / 日300回)だけで守っている | 公開運用するなら埋める |
+| 匿名認証 | 端末を変えるとデータを引き継げない | アカウント連携が要る |
+| iPhone 実機の署名 | 開発者プロファイルは 2026-09-29 に失効。以降は入れ直しが要る | |
+| 経路 API には座標を渡す | OpenRouteService に出発・到着の座標を渡している(LLM には渡していない) | 自前でルーティングするか、利用規約の確認 |
 
 ---
 
